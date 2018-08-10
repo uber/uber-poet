@@ -2,6 +2,7 @@ import os
 
 from filegen import SwiftFileGenerator
 from util import first_in_dict, first_key, makedir
+from moduletree import ModuleNode
 
 
 class BuckProjectGenerator(object):
@@ -26,55 +27,57 @@ class BuckProjectGenerator(object):
     def make_list_str(self, items):
         return (",\n" + (" " * 8)).join(items)
 
-# Generation Functions
+    def make_dep_list(self, items):
+        return self.make_list_str(["'/{0}/{1}:{1}'".format(self.buck_app_root, i) for i in items])
 
-    def gen_app(self, module_count=20):
+    def make_scheme_list(self, items):
+        return self.make_list_str(["{2: <20} :'/{0}/{1}:{1}Scheme'".format(self.buck_app_root, i, "'{}'".format(i)) for i in items])
+
+    # Generation Functions
+
+    def gen_app(self, module_count=90):
+        layer_count = 10
+        app_node, node_list = ModuleNode.gen_layered_graph(layer_count, module_count / layer_count)
+        library_node_list = [n for n in node_list if n.node_type == ModuleNode.LIBRARY]
+        module_index = {n.name: self.gen_lib_module(n) for n in library_node_list}
+
         app_module_dir = os.path.join(self.app_root, "App")
         makedir(app_module_dir)
 
-        module_index = self.gen_modules(module_count)
-
         app_files = {
+            "main.swift": self.gen_app_main(app_node, module_index),
             "Info.plist": self.load_resource("Info.plist"),  # TODO do a straight copy operation instead
-            "main.swift": self.gen_app_main(module_index),
-            "BUCK": self.gen_app_buck(module_index),
+            "BUCK": self.gen_app_buck(app_node, library_node_list),
         }
 
         for name, text in app_files.iteritems():
             self.write_file(os.path.join(app_module_dir, name), text)
 
-    def gen_app_buck(self, module_index):
-        keys = module_index.keys()
-        module_dep_list = self.make_list_str(["'{0}/{1}:{1}'".format(self.buck_app_root, i) for i in keys])
-        module_scheme_list = self.make_list_str(
-            ["'{1}': '{0}/{1}:{1}Scheme'".format(self.buck_app_root, i) for i in keys])
+    def gen_app_buck(self, node, all_nodes):
+        module_dep_list = self.make_dep_list([i.name for i in node.deps])
+        module_scheme_list = self.make_scheme_list([i.name for i in all_nodes])
         return self.bzl_app_template.format(module_scheme_list, module_dep_list)
 
-    def gen_app_main(self, module_index):
-        chosen_main_module = first_key(module_index)
-        file_index = first_in_dict(first_in_dict(module_index))
+    def gen_app_main(self, app_node, module_index):
+        chosen_main_module_name = app_node.deps[0].name
+        file_index = first_in_dict(module_index[chosen_main_module_name])
         class_key = first_key(file_index.classes)
         class_index = first_in_dict(file_index.classes)
         function_key = class_index[0]
-        return self.swift_gen.gen_main(chosen_main_module, class_key, function_key)
+        return self.swift_gen.gen_main(chosen_main_module_name, class_key, function_key)
 
-    def gen_modules(self, module_count):
-        module_index = {}
-        for i in xrange(module_count):
-            name, index = self.gen_module(i)  # also writes modules to disk as a side effect
-            module_index[name] = index
-        return module_index
+    # Library Generation
 
-    def gen_module(self, lib_index):
+    def gen_lib_module(self, module_node):
         # Make BUCK Text
-        module_name = "MockLib{}".format(lib_index)
-        buck_text = self.bzl_lib_template.format(module_name, "")
+        deps = self.make_dep_list([i.name for i in module_node.deps])
+        buck_text = self.bzl_lib_template.format(module_node.name, deps)
 
         # Make Swift Text
         files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(20)}
 
         # Make Module Directories
-        module_dir_path = os.path.join(self.app_root, module_name)
+        module_dir_path = os.path.join(self.app_root, module_node.name)
         files_dir_path = os.path.join(module_dir_path, "Sources")
         makedir(module_dir_path)
         makedir(files_dir_path)
@@ -89,4 +92,6 @@ class BuckProjectGenerator(object):
             self.write_file(file_path, file_obj.text)
             file_obj.text = ""  # Save memory after write
 
-        return module_name, files
+        module_node.extra_info = files
+
+        return files

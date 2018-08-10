@@ -1,6 +1,7 @@
 import argparse
 import modulegen
 import shutil
+import os
 
 
 class CommandLineInterface(object):
@@ -37,7 +38,8 @@ class CommandLineInterface(object):
     def main(self):
         parser, args = self.make_args()
         print "Creating a", args.module_count, "module count mock app in", args.output_directory
-        shutil.rmtree(args.output_directory)  # TODO fix this
+        if os.path.isdir(args.output_directory):
+            shutil.rmtree(args.output_directory)  # TODO fix this
         gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)
         gen.gen_app(args.module_count)
         print "Done"
