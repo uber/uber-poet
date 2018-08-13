@@ -74,7 +74,7 @@ class BuckProjectGenerator(object):
         buck_text = self.bzl_lib_template.format(module_node.name, deps)
 
         # Make Swift Text
-        files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(20)}
+        files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(48)}
 
         # Make Module Directories
         module_dir_path = os.path.join(self.app_root, module_node.name)

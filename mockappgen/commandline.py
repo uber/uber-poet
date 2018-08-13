@@ -15,11 +15,11 @@ class CommandLineInterface(object):
         parser = argparse.ArgumentParser(description=arg_desc,
                                          formatter_class=argparse.RawDescriptionHelpFormatter)
 
-        parser.add_argument('-o', '--output_directory', default='/tmp/ub_mock_project',
+        parser.add_argument('-o', '--output_directory', required=True,
                             help='Where the mock project should be output.')
-        parser.add_argument('-bmp', '--buck_module_path', default='/apps/mockapp',
+        parser.add_argument('-bmp', '--buck_module_path', required=True,
                             help='Where the mock project should be output.')
-        parser.add_argument('-mc', '--module_count', default=150,
+        parser.add_argument('-mc', '--module_count', required=True, type=int,
                             help='How many modules your fake app should contain')
 
         # TODO implement this
@@ -38,6 +38,7 @@ class CommandLineInterface(object):
     def main(self):
         parser, args = self.make_args()
         print "Creating a", args.module_count, "module count mock app in", args.output_directory
+        print "./monorepo project", "/{}/App:MockApp".format(args.buck_module_path)
         if os.path.isdir(args.output_directory):
             shutil.rmtree(args.output_directory)  # TODO fix this
         gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)

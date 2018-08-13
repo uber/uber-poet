@@ -1,13 +1,5 @@
 import random
-
-
-def merge_arrays(two_d_array):
-    # I know this is a fold / reduce, but I got an error when I tried
-    # the reduce function?
-    out = []
-    for array in two_d_array:
-        out += array
-    return out
+from util import merge_lists
 
 
 class ModuleNode(object):
@@ -45,12 +37,12 @@ class ModuleNode(object):
         def node(layer, node):
             return ModuleNode('MockLib{}_{}'.format(layer, node), ModuleNode.LIBRARY)
         layers = [[node(l, n) for n in xrange(nodes_per_layer)] for l in xrange(layer_count)]
-        all_nodes = merge_arrays(layers)
+        all_nodes = merge_lists(layers)
         app_node = ModuleNode('App', ModuleNode.APP, layers[0])
 
         for i, layer in enumerate(layers):
             lower_layers = layers[(i + 1):] if i != len(layers) - 1 else []
-            lower_merged = merge_arrays(lower_layers)
+            lower_merged = merge_lists(lower_layers)
             for node in layer:
                 if deps_per_node < len(lower_merged):
                     node.deps = random.sample(lower_merged, deps_per_node)

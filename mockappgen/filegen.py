@@ -2,7 +2,7 @@ from util import seed
 
 
 swift_func_template = """
-func complexCrap{0}<T>(arg: Int, stuff:T) -> Int {{
+public func complexCrap{0}<T>(arg: Int, stuff:T) -> Int {{
     let a = Int(4 * {1} + Int(Float(arg) / 32.0))
     let b = Int(4 * {1} + Int(Float(arg) / 32.0))
     let c = Int(4 * {1} + Int(Float(arg) / 32.0))
@@ -10,11 +10,11 @@ func complexCrap{0}<T>(arg: Int, stuff:T) -> Int {{
 }}"""
 
 swift_class_template = """
-class MyClass{0} {{
-    let x: Int
-    let y: String
+public class MyClass{0} {{
+    public let x: Int
+    public let y: String
 
-    init() {{
+    public init() {{
         x = 7
         y = "hi"
     }}
@@ -76,4 +76,7 @@ class SwiftFileGenerator(FileGenerator):
         return FileResult("\n".join(chunks), func_nums, class_nums)
 
     def gen_main(self, module_name, class_num, func_num):
-        return "import {}\n\nMyClass{}().complexCrap{}(4,2)\n".format(module_name, class_num, func_num)
+        import_line = 'import {}'.format(module_name)
+        action_expr = 'MyClass{}().complexCrap{}(arg: 4,stuff: 2)'.format(class_num, func_num)
+        print_line = 'print("\\({})")'.format(action_expr)
+        return '\n'.join([import_line, print_line])
