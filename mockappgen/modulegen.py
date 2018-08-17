@@ -35,9 +35,7 @@ class BuckProjectGenerator(object):
 
     # Generation Functions
 
-    def gen_app(self, module_count=90):
-        layer_count = 10
-        app_node, node_list = ModuleNode.gen_layered_graph(layer_count, module_count / layer_count)
+    def gen_app(self, app_node, node_list):
         library_node_list = [n for n in node_list if n.node_type == ModuleNode.LIBRARY]
         module_index = {n.name: self.gen_lib_module(n) for n in library_node_list}
 

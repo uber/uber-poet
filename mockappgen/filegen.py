@@ -46,7 +46,7 @@ class SwiftFileGenerator(FileGenerator):
         out = []
         nums = []
 
-        for i in xrange(function_count):
+        for _ in xrange(function_count):
             num = seed()
             text = swift_func_template.format(num, var_name)
             nums.append(num)
@@ -58,7 +58,7 @@ class SwiftFileGenerator(FileGenerator):
         out = []
         class_nums = {}
 
-        for i in xrange(class_count):
+        for _ in xrange(class_count):
             num = seed()
             func_out, func_nums = self.gen_func(func_per_class_count, "x")
             out.append(swift_class_template.format(num, func_out))
