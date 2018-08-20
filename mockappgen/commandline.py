@@ -22,6 +22,8 @@ class CommandLineInterface(object):
                             help='Where the mock project should be output.')
         parser.add_argument('-bmp', '--buck_module_path', required=True,
                             help='Where the mock project should be output.')
+        parser.add_argument('-loc', '--total_lines_of_code', type=int, default=1500000,
+                            help='How many approx lines of code should be generated.')
 
         group = parser.add_mutually_exclusive_group(required=True)
         group.add_argument('-mc', '--module_count', type=int,
@@ -50,6 +52,7 @@ class CommandLineInterface(object):
 
         if os.path.isdir(args.output_directory):
             # TODO fix this quick overwrite hack, since we should warn/ask on overwrite
+            print "Deleting old mock app directory", args.output_directory
             shutil.rmtree(args.output_directory)
         gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)
 
@@ -65,7 +68,7 @@ class CommandLineInterface(object):
 
         print "Creating a", len(node_list), "module count mock app in", args.output_directory
         print "Example command: $ ./monorepo project", "/{}/App:MockApp".format(args.buck_module_path)
-        gen.gen_app(app_node, node_list)
+        gen.gen_app(app_node, node_list, args.total_lines_of_code)
 
         fin = time.time()
         print "Done in", fin-start, "s"
