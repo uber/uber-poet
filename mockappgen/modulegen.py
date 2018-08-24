@@ -15,7 +15,9 @@ class BuckProjectGenerator(object):
         self.bzl_lib_template = self.load_resource("mocklibtemplate.bzl")
         self.bzl_app_template = self.load_resource("mockapptemplate.bzl")
         self.swift_gen = SwiftFileGenerator()
-        actual_code_multiplier = 0.811537333  # Determined by looking at what this generates in cloc
+        # actual code = lines of code, minus whitespace
+        # Determined by looking at what this generates in cloc
+        actual_code_multiplier = 0.811537333  # TODO use a more generalized measurement method
         self.swift_file_size_loc = int(self.swift_gen.gen_file(3, 3).text_line_count * actual_code_multiplier)
 
     def load_resource(self, name):
@@ -39,8 +41,13 @@ class BuckProjectGenerator(object):
 
     def gen_app(self, app_node, node_list, target_loc):
         library_node_list = [n for n in node_list if n.node_type == ModuleNode.LIBRARY]
-        loc_per_lib = target_loc / len(library_node_list)
-        module_index = {n.name: self.gen_lib_module(n, loc_per_lib) for n in library_node_list}
+
+        total_code_units = 0
+        for l in library_node_list:
+            total_code_units += l.code_units
+
+        loc_per_unit = target_loc / total_code_units
+        module_index = {n.name: self.gen_lib_module(n, loc_per_unit) for n in library_node_list}
 
         app_module_dir = os.path.join(self.app_root, "App")
         makedir(app_module_dir)
@@ -69,13 +76,13 @@ class BuckProjectGenerator(object):
 
     # Library Generation
 
-    def gen_lib_module(self, module_node, target_loc):
+    def gen_lib_module(self, module_node, loc_per_unit):
         # Make BUCK Text
         deps = self.make_dep_list([i.name for i in module_node.deps])
         buck_text = self.bzl_lib_template.format(module_node.name, deps)
 
         # Make Swift Text
-        file_count = target_loc/self.swift_file_size_loc
+        file_count = (loc_per_unit * module_node.code_units)/self.swift_file_size_loc
         files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(file_count)}
 
         # Make Module Directories
