@@ -10,6 +10,7 @@ from util import makedir
 import datetime
 from os.path import join
 import logging
+import ConfigParser
 
 
 class CommandLineInterface(object):
@@ -89,9 +90,8 @@ class CommandLineInterface(object):
         fin = time.time()
         logging.info("Done in %f s", fin-start)
 
-    def multisuite(self, log_dir, ios_git_root):
+    def multisuite(self, log_dir, ios_git_root, switch_xcode=False):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
-        makedir(log_dir)
 
         monorepo_binary = join(ios_git_root, "monorepo")
         xcode_util_binary = join(ios_git_root, "xcode")
@@ -99,16 +99,27 @@ class CommandLineInterface(object):
         mock_output_dir = join(ios_git_root, 'apps', 'mockapp')
         dot_file_path = join(log_dir, 'helix_deps.gv')
         build_time_path = join(log_dir, 'build_times.txt')
+        build_time_csv_path = join(log_dir, 'build_times.csv')
+        build_trace_path = join(log_dir, 'build_traces')
+        buckconfig_path = join(ios_git_root, '.buckconfig.local')
         buck_path = '/apps/mockapp'
         app_buck_path = "/{}/App:MockApp".format(buck_path)
         loc = 1500000  # 1.5 million loc
+        xcode_paths = {  # TODO a better way to specify xcode versions to test
+            9: '/Applications/Xcode.9.4.1.9F2000.app/',
+            10: '/Applications/Xcode-beta.app/',
+        }
+
+        makedir(log_dir)
+        makedir(build_trace_path)
 
         logging.info('Starting build session')
         build_time_file = open(build_time_path, 'a')
+        build_time_csv_file = open(build_time_csv_path, 'a')
+
         now = str(datetime.datetime.now())
         build_time_file.write('Build session started at {}\n'.format(now))
         build_time_file.flush()
-        subprocess.check_call(['xcodebuild', '-version'], stdout=build_time_file)
 
         with open(dot_file_path, 'w') as dot_file:
             logging.info('Generate dot graph')
@@ -116,10 +127,13 @@ class CommandLineInterface(object):
 
         project_generator = modulegen.BuckProjectGenerator(mock_output_dir, buck_path)
 
-        for gen_type in ModuleGenType.enum_list():
-            build_log_path = join(log_dir, '{}_mockapp_build_log.txt'.format(gen_type))
+        def inner_loop(wmo_enabled, gen_type, xcode_version=''):
+            xcode_name = '{}_'.format(xcode_version) if xcode_version else ''
+            build_log_path = join(log_dir, '{}{}_mockapp_build_log.txt'.format(xcode_name, gen_type))
 
-            logging.info('##### Generating %s', gen_type)
+            gen_info = '{} (wmo_enabled: {})'.format(gen_type, wmo_enabled)
+            logging.info('##### Generating %s', gen_info)
+            subprocess.check_call(['xcodebuild', '-version'], stdout=build_time_file)
 
             self.del_old_output_dir(mock_output_dir)
 
@@ -140,9 +154,47 @@ class CommandLineInterface(object):
                                       stdout=build_log_file, stderr=build_log_file)
             end = time.time()
 
-            log_statement = '{} w/ {} modules took {} s\n'.format(gen_type, len(node_list), end-start)
+            total_time = int(end-start)
+            build_end = str(datetime.datetime.now())
+            log_statement = '{} w/ {} modules took {} s\n'.format(gen_info, len(node_list), total_time)
             logging.info(log_statement)
             build_time_file.write(log_statement)
             build_time_file.flush()
+            build_time_csv_file.write('{}, {}, {}, {}, {}\n'.format(
+                build_end, gen_type, xcode_version, wmo_enabled, total_time))
+            build_time_csv_file.flush()
 
+        # Don't want to run twice if xcode_switching is disabled
+        xcode_versions = [9, 10] if switch_xcode else [-1]
+
+        for xcode_version in xcode_versions:
+            # We do xcode-select first because it requires a sudo
+            # I would suggest extending your sudo time out to 1 day so you can do the full suite
+            # unattended: https://lifehacker.com/make-sudo-sessions-last-longer-in-linux-1221545774
+            # Since I don't know how to not make xcode-select -s require sudo
+            xcode_name = ''
+            if switch_xcode:
+                logging.warning('Switching to xcode version %d', xcode_version)
+                subprocess.check_call(['sudo', 'xcode-select', '-s', xcode_paths[xcode_version]])
+                xcode_name = xcode_version
+
+            for wmo_enabled in [True, False]:
+                logging.info('Swift WMO Enabled: {}'.format(wmo_enabled))
+                logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
+                config = ConfigParser.RawConfigParser()
+                uber_section = 'uber'
+                config.add_section(uber_section)
+                config.set(uber_section, 'xcode_tracing_path', build_trace_path)
+                config.set(uber_section, 'chrome_trace_build_times', 'true')
+                config.set(uber_section, 'whole_module_optimization', str(wmo_enabled))
+
+                with open(buckconfig_path, 'w') as buckconfig:
+                    config.write(buckconfig)
+
+                for gen_type in ModuleGenType.enum_list():
+                    inner_loop(wmo_enabled, gen_type, xcode_name)
+
+        logging.warn('Removing .buckconfig.local file at: %s', buckconfig_path)
+        os.remove(buckconfig_path)
         build_time_file.close()
+        build_time_csv_file.close()
