@@ -5,12 +5,14 @@ import os
 import time
 import dotreader
 import subprocess
-from moduletree import ModuleNode, ModuleGenType
-from util import makedir
 import datetime
-from os.path import join
 import logging
 import ConfigParser
+import json
+
+from moduletree import ModuleNode, ModuleGenType
+from util import makedir
+from os.path import join
 
 
 class CommandLineInterface(object):
@@ -72,25 +74,29 @@ class CommandLineInterface(object):
             logging.info("Deleting old mock app directory %s", output_directory)
             shutil.rmtree(output_directory)
 
-    def main(self):
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
-        start = time.time()
-        _, args = self.make_args()
-        dot_path = args.dot_path if hasattr(args, 'dot_path') else None
-        module_count = args.module_count if hasattr(args, 'module_count') else 0
-        app_node, node_list = self.gen_graph(args.gen_type, dot_path, module_count)
+    def make_buckconfig_local(self, buckconfig_path, build_trace_path, wmo_enabled):
+        logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
+        config = ConfigParser.RawConfigParser()
+        uber_section = 'uber'
+        config.add_section(uber_section)
+        config.set(uber_section, 'xcode_tracing_path', build_trace_path)
+        config.set(uber_section, 'chrome_trace_build_times', 'true')
+        config.set(uber_section, 'whole_module_optimization', str(wmo_enabled))
 
-        self.del_old_output_dir(args.output_directory)
-        gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)
+        with open(buckconfig_path, 'w') as buckconfig:
+            config.write(buckconfig)
 
-        logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
-        logging.info("Example command: $ ./monorepo project /{}/App:MockApp".format(args.buck_module_path))
-        gen.gen_app(app_node, node_list, args.total_lines_of_code)
+    def count_swift_loc(self, code_path):
+        logging.info('Counting lines of code in %s', code_path)
+        raw_json_out = subprocess.check_output(['cloc', '--quiet', '--json', code_path])
+        json_out = json.loads(raw_json_out)
+        swift_loc = json_out.get('Swift', {}).get('code', 0)
+        if not swift_loc:
+            logging.error('Unexpected cloc output "%s"', raw_json_out)
+            raise ValueError('cloc did not give a correct value')
+        return swift_loc
 
-        fin = time.time()
-        logging.info("Done in %f s", fin-start)
-
-    def multisuite(self, log_dir, ios_git_root, switch_xcode=False):
+    def multisuite(self, log_dir, ios_git_root, switch_xcode=False, run_xcodebuild=True):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
 
         monorepo_binary = join(ios_git_root, "monorepo")
@@ -127,7 +133,7 @@ class CommandLineInterface(object):
 
         project_generator = modulegen.BuckProjectGenerator(mock_output_dir, buck_path)
 
-        def inner_loop(wmo_enabled, gen_type, xcode_version=''):
+        def build_app_type(gen_type, wmo_enabled, xcode_version=''):
             xcode_name = '{}_'.format(xcode_version) if xcode_version else ''
             build_log_path = join(log_dir, '{}{}_mockapp_build_log.txt'.format(xcode_name, gen_type))
 
@@ -141,27 +147,34 @@ class CommandLineInterface(object):
             module_count = 30 if 'bs' in gen_type else 150  # we only want 30 small modules for big/small gen types
             app_node, node_list = self.gen_graph(gen_type, dot_file_path, module_count)
             project_generator.gen_app(app_node, node_list, loc)
+            swift_loc = self.count_swift_loc(mock_output_dir)
+            logging.info('App type "%s" generated %d loc', gen_type, swift_loc)
 
-            logging.info('Generate xcode workspace & clean')
-            subprocess.check_call([monorepo_binary, 'project', app_buck_path, '-d'])
-            subprocess.check_call([xcode_util_binary, 'clean'])
+            total_time = 0
+            if run_xcodebuild:
+                logging.info('Generate xcode workspace & clean')
+                subprocess.check_call([monorepo_binary, 'project', app_buck_path, '-d'])
+                subprocess.check_call([xcode_util_binary, 'clean'])
 
-            logging.info('Start xcodebuild')
-            start = time.time()
-            with open(build_log_path, 'w') as build_log_file:
-                subprocess.check_call(['xcodebuild', 'build', '-scheme', 'MockApp', '-sdk',
-                                       'iphonesimulator', '-workspace', mock_app_workspace],
-                                      stdout=build_log_file, stderr=build_log_file)
-            end = time.time()
+                logging.info('Start xcodebuild')
+                start = time.time()
+                with open(build_log_path, 'w') as build_log_file:
+                    subprocess.check_call(['xcodebuild', 'build', '-scheme', 'MockApp', '-sdk',
+                                           'iphonesimulator', '-workspace', mock_app_workspace],
+                                          stdout=build_log_file, stderr=build_log_file)
+                end = time.time()
+                total_time = int(end-start)
+            else:
+                logging.info('Skipping xcodebuild')
 
-            total_time = int(end-start)
             build_end = str(datetime.datetime.now())
-            log_statement = '{} w/ {} modules took {} s\n'.format(gen_info, len(node_list), total_time)
+            log_statement = '{} w/ {} (loc: {}) modules took {} s\n'.format(
+                gen_info, len(node_list), swift_loc, total_time)
             logging.info(log_statement)
             build_time_file.write(log_statement)
             build_time_file.flush()
-            build_time_csv_file.write('{}, {}, {}, {}, {}\n'.format(
-                build_end, gen_type, xcode_version, wmo_enabled, total_time))
+            build_time_csv_file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(
+                build_end, gen_type, xcode_version, wmo_enabled, total_time, len(node_list), swift_loc))
             build_time_csv_file.flush()
 
         # Don't want to run twice if xcode_switching is disabled
@@ -180,21 +193,30 @@ class CommandLineInterface(object):
 
             for wmo_enabled in [True, False]:
                 logging.info('Swift WMO Enabled: {}'.format(wmo_enabled))
-                logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
-                config = ConfigParser.RawConfigParser()
-                uber_section = 'uber'
-                config.add_section(uber_section)
-                config.set(uber_section, 'xcode_tracing_path', build_trace_path)
-                config.set(uber_section, 'chrome_trace_build_times', 'true')
-                config.set(uber_section, 'whole_module_optimization', str(wmo_enabled))
-
-                with open(buckconfig_path, 'w') as buckconfig:
-                    config.write(buckconfig)
+                self.make_buckconfig_local(buckconfig_path, build_trace_path, wmo_enabled)
 
                 for gen_type in ModuleGenType.enum_list():
-                    inner_loop(wmo_enabled, gen_type, xcode_name)
+                    build_app_type(gen_type, wmo_enabled, xcode_name)
 
         logging.warn('Removing .buckconfig.local file at: %s', buckconfig_path)
         os.remove(buckconfig_path)
         build_time_file.close()
         build_time_csv_file.close()
+
+    def main(self):
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
+        start = time.time()
+        _, args = self.make_args()
+        dot_path = args.dot_path if hasattr(args, 'dot_path') else None
+        module_count = args.module_count if hasattr(args, 'module_count') else 0
+        app_node, node_list = self.gen_graph(args.gen_type, dot_path, module_count)
+
+        self.del_old_output_dir(args.output_directory)
+        gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)
+
+        logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
+        logging.info("Example command: $ ./monorepo project /{}/App:MockApp".format(args.buck_module_path))
+        gen.gen_app(app_node, node_list, args.total_lines_of_code)
+
+        fin = time.time()
+        logging.info("Done in %f s", fin-start)
