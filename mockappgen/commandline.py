@@ -13,6 +13,9 @@ import json
 from moduletree import ModuleNode, ModuleGenType
 from util import makedir
 from os.path import join
+from cpulogger import CPULogger, CPULog
+
+# TODO seperate out main, multisuite and util methods into 3 seperate classes
 
 
 class CommandLineInterface(object):
@@ -115,6 +118,7 @@ class CommandLineInterface(object):
             9: '/Applications/Xcode.9.4.1.9F2000.app/',
             10: '/Applications/Xcode-beta.app/',
         }
+        xcode_versions = [9, 10] if switch_xcode else [-1]  # Don't want to run twice if xcode_switching is disabled
 
         makedir(log_dir)
         makedir(build_trace_path)
@@ -177,8 +181,8 @@ class CommandLineInterface(object):
                 build_end, gen_type, xcode_version, wmo_enabled, total_time, len(node_list), swift_loc))
             build_time_csv_file.flush()
 
-        # Don't want to run twice if xcode_switching is disabled
-        xcode_versions = [9, 10] if switch_xcode else [-1]
+        cpu_logger = CPULogger()
+        cpu_logger.start()
 
         for xcode_version in xcode_versions:
             # We do xcode-select first because it requires a sudo
@@ -203,12 +207,27 @@ class CommandLineInterface(object):
         build_time_file.close()
         build_time_csv_file.close()
 
+        cpu_logger.stop()
+        self.apply_cpu_to_traces(build_trace_path, cpu_logger)
+
+    def apply_cpu_to_traces(self, build_trace_path, cpu_logger):
+        logging.info('Applying CPU info to traces in %s', build_trace_path)
+        cpu_logs = cpu_logger.process_log()
+        trace_paths = [join(build_trace_path, f) for f in os.listdir(build_trace_path) if f.endswith('trace')]
+        for trace_path in trace_paths:
+            with open(trace_path, 'r') as trace_file:
+                traces = json.load(trace_file)
+                new_traces = CPULog.apply_log_to_trace(cpu_logs, traces)
+            with open(trace_path+'.json', 'w') as new_trace_file:
+                json.dump(new_traces, new_trace_file)
+
     def main(self):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
         start = time.time()
         _, args = self.make_args()
-        dot_path = args.dot_path if hasattr(args, 'dot_path') else None
+        dot_path = args.dot_file if hasattr(args, 'dot_file') else None
         module_count = args.module_count if hasattr(args, 'module_count') else 0
+
         app_node, node_list = self.gen_graph(args.gen_type, dot_path, module_count)
 
         self.del_old_output_dir(args.output_directory)

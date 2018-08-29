@@ -1,0 +1,10 @@
+1535510161 CPU usage: 9.12% user, 18.24% sys, 72.62% idle
+1535510162 CPU usage: 5.51% user, 16.78% sys, 77.69% idle
+1535510164 CPU usage: 9.17% user, 18.59% sys, 72.22% idle
+1535510165 CPU usage: 5.64% user, 15.60% sys, 78.75% idle
+1535510166 CPU usage: 4.79% user, 14.97% sys, 80.23% idle
+1535510167 CPU usage: 7.77% user, 20.21% sys, 72.0% idle
+1535510168 CPU usage: 14.54% user, 17.90% sys, 67.54% idle
+1535510169 CPU usage: 4.70% user, 17.94% sys, 77.35% idle
+1535510170 CPU usage: 3.11% user, 12.35% sys, 84.53% idle
+1535510171 CPU usage: 5.99% user, 17.26% sys, 76.73% idle
