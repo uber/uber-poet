@@ -1,5 +1,7 @@
 import subprocess
 import os
+import sys
+from tempfile import TemporaryFile
 
 
 class CPULog(object):
@@ -40,7 +42,7 @@ class CPULog(object):
 
     @staticmethod
     def find_timestamp_range(traces):
-        min_ts = 153544452045446006000  # TODO get int max
+        min_ts = sys.maxint
         max_ts = -1
         for trace in traces:
             ts = trace['ts']
@@ -61,9 +63,8 @@ class CPULog(object):
 class CPULogger(object):
 
     def __init__(self):
-        self.log_path = '/tmp/cpu_log_39439.txt'  # TODO figure out a real tmp file method
         self.process = None
-        self.output = open(self.log_path, 'w')
+        self.output = TemporaryFile()
 
     def __del__(self):
         self.output.close()
@@ -81,8 +82,8 @@ class CPULogger(object):
 
     def process_log(self):
         self.stop()
+        self.output.seek(0)
+        out = [CPULog(line) for line in self.output]
         self.output.close()
-        with open(self.log_path, 'r') as f:
-            out = [CPULog(line) for line in f]
-        self.output = open(self.log_path, 'w')
+        self.output = TemporaryFile()
         return out

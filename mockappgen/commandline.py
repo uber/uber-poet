@@ -5,48 +5,19 @@ import os
 import time
 import dotreader
 import subprocess
-import datetime
 import logging
 import ConfigParser
 import json
 
+from cpulogger import CPULog
 from moduletree import ModuleNode, ModuleGenType
-from util import makedir
 from os.path import join
-from cpulogger import CPULogger, CPULog
-
-# TODO seperate out main, multisuite and util methods into 3 seperate classes
 
 
-class CommandLineInterface(object):
+class CommandLineCommon(object):
 
-    def __init__(self):
-        super(CommandLineInterface, self).__init__()
-
-    def make_args(self):
-        """Parses command line arguments"""
-        arg_desc = 'Generate a fake test project with many buck modules'
-
-        parser = argparse.ArgumentParser(description=arg_desc)
-
-        parser.add_argument('-o', '--output_directory', required=True,
-                            help='Where the mock project should be output.')
-        parser.add_argument('-bmp', '--buck_module_path', required=True,
-                            help='The root of the BUCK dependency path of the generated code.')
-        parser.add_argument('-loc', '--total_lines_of_code', type=int, default=1500000,
-                            help='How many approx lines of code should be generated.')
-        parser.add_argument('-gt', '--gen_type', required=True, choices=ModuleGenType.enum_list(),
-                            help='What kind of mock app generation you want.')
-
-        group = parser.add_mutually_exclusive_group(required=True)
-        group.add_argument('-mc', '--module_count', type=int,
-                           help='How many modules your fake app should contain.  In big small (bs_) mock types, it specifies the small module count.')
-        group.add_argument('-dot', '--dot_file',
-                           help='Generate a project based on a dot file representation from a `buck query "deps(target)" --dot` output')
-
-        return parser, parser.parse_args()
-
-    def gen_graph(self, gen_type, dot_path=None, module_count=0):
+    @staticmethod
+    def gen_graph(gen_type, dot_path=None, module_count=0):
         app_node, node_list = None, None
 
         big_modules = 3
@@ -71,13 +42,15 @@ class CommandLineInterface(object):
 
         return app_node, node_list
 
-    def del_old_output_dir(self, output_directory):
+    @staticmethod
+    def del_old_output_dir(output_directory):
         if os.path.isdir(output_directory):
             # TODO fix this quick overwrite hack, since we should warn/ask on overwrite
             logging.info("Deleting old mock app directory %s", output_directory)
             shutil.rmtree(output_directory)
 
-    def make_buckconfig_local(self, buckconfig_path, build_trace_path, wmo_enabled):
+    @staticmethod
+    def make_buckconfig_local(buckconfig_path, build_trace_path, wmo_enabled):
         logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
         config = ConfigParser.RawConfigParser()
         uber_section = 'uber'
@@ -89,9 +62,17 @@ class CommandLineInterface(object):
         with open(buckconfig_path, 'w') as buckconfig:
             config.write(buckconfig)
 
-    def count_swift_loc(self, code_path):
-        logging.info('Counting lines of code in %s', code_path)
-        raw_json_out = subprocess.check_output(['cloc', '--quiet', '--json', code_path])
+    @staticmethod
+    def count_swift_loc(code_path):
+        """Returns the number of lines of code in `code_path` using cloc. If cloc is not
+        on your system or there is an error, then it returns -1"""
+        try:
+            logging.info('Counting lines of code in %s', code_path)
+            raw_json_out = subprocess.check_output(['cloc', '--quiet', '--json', code_path])
+        except OSError:
+            logging.warning("You do not have cloc installed, skipping line counting.")
+            return -1
+
         json_out = json.loads(raw_json_out)
         swift_loc = json_out.get('Swift', {}).get('code', 0)
         if not swift_loc:
@@ -99,118 +80,9 @@ class CommandLineInterface(object):
             raise ValueError('cloc did not give a correct value')
         return swift_loc
 
-    def multisuite(self, log_dir, ios_git_root, switch_xcode=False, run_xcodebuild=True):
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
-
-        monorepo_binary = join(ios_git_root, "monorepo")
-        xcode_util_binary = join(ios_git_root, "xcode")
-        mock_app_workspace = join(ios_git_root, 'apps', 'mockapp', 'App', 'MockApp.xcworkspace')
-        mock_output_dir = join(ios_git_root, 'apps', 'mockapp')
-        dot_file_path = join(log_dir, 'helix_deps.gv')
-        build_time_path = join(log_dir, 'build_times.txt')
-        build_time_csv_path = join(log_dir, 'build_times.csv')
-        build_trace_path = join(log_dir, 'build_traces')
-        buckconfig_path = join(ios_git_root, '.buckconfig.local')
-        buck_path = '/apps/mockapp'
-        app_buck_path = "/{}/App:MockApp".format(buck_path)
-        loc = 1500000  # 1.5 million loc
-        xcode_paths = {  # TODO a better way to specify xcode versions to test
-            9: '/Applications/Xcode.9.4.1.9F2000.app/',
-            10: '/Applications/Xcode-beta.app/',
-        }
-        xcode_versions = [9, 10] if switch_xcode else [-1]  # Don't want to run twice if xcode_switching is disabled
-
-        makedir(log_dir)
-        makedir(build_trace_path)
-
-        logging.info('Starting build session')
-        build_time_file = open(build_time_path, 'a')
-        build_time_csv_file = open(build_time_csv_path, 'a')
-
-        now = str(datetime.datetime.now())
-        build_time_file.write('Build session started at {}\n'.format(now))
-        build_time_file.flush()
-
-        with open(dot_file_path, 'w') as dot_file:
-            logging.info('Generate dot graph')
-            subprocess.check_call([monorepo_binary, 'query', "deps(helix)", '--dot'], stdout=dot_file)
-
-        project_generator = modulegen.BuckProjectGenerator(mock_output_dir, buck_path)
-
-        def build_app_type(gen_type, wmo_enabled, xcode_version=''):
-            xcode_name = '{}_'.format(xcode_version) if xcode_version else ''
-            build_log_path = join(log_dir, '{}{}_mockapp_build_log.txt'.format(xcode_name, gen_type))
-
-            gen_info = '{} (wmo_enabled: {})'.format(gen_type, wmo_enabled)
-            logging.info('##### Generating %s', gen_info)
-            subprocess.check_call(['xcodebuild', '-version'], stdout=build_time_file)
-
-            self.del_old_output_dir(mock_output_dir)
-
-            logging.info('Generating mock app')
-            module_count = 30 if 'bs' in gen_type else 150  # we only want 30 small modules for big/small gen types
-            app_node, node_list = self.gen_graph(gen_type, dot_file_path, module_count)
-            project_generator.gen_app(app_node, node_list, loc)
-            swift_loc = self.count_swift_loc(mock_output_dir)
-            logging.info('App type "%s" generated %d loc', gen_type, swift_loc)
-
-            total_time = 0
-            if run_xcodebuild:
-                logging.info('Generate xcode workspace & clean')
-                subprocess.check_call([monorepo_binary, 'project', app_buck_path, '-d'])
-                subprocess.check_call([xcode_util_binary, 'clean'])
-
-                logging.info('Start xcodebuild')
-                start = time.time()
-                with open(build_log_path, 'w') as build_log_file:
-                    subprocess.check_call(['xcodebuild', 'build', '-scheme', 'MockApp', '-sdk',
-                                           'iphonesimulator', '-workspace', mock_app_workspace],
-                                          stdout=build_log_file, stderr=build_log_file)
-                end = time.time()
-                total_time = int(end-start)
-            else:
-                logging.info('Skipping xcodebuild')
-
-            build_end = str(datetime.datetime.now())
-            log_statement = '{} w/ {} (loc: {}) modules took {} s\n'.format(
-                gen_info, len(node_list), swift_loc, total_time)
-            logging.info(log_statement)
-            build_time_file.write(log_statement)
-            build_time_file.flush()
-            build_time_csv_file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(
-                build_end, gen_type, xcode_version, wmo_enabled, total_time, len(node_list), swift_loc))
-            build_time_csv_file.flush()
-
-        cpu_logger = CPULogger()
-        cpu_logger.start()
-
-        for xcode_version in xcode_versions:
-            # We do xcode-select first because it requires a sudo
-            # I would suggest extending your sudo time out to 1 day so you can do the full suite
-            # unattended: https://lifehacker.com/make-sudo-sessions-last-longer-in-linux-1221545774
-            # Since I don't know how to not make xcode-select -s require sudo
-            xcode_name = ''
-            if switch_xcode:
-                logging.warning('Switching to xcode version %d', xcode_version)
-                subprocess.check_call(['sudo', 'xcode-select', '-s', xcode_paths[xcode_version]])
-                xcode_name = xcode_version
-
-            for wmo_enabled in [True, False]:
-                logging.info('Swift WMO Enabled: {}'.format(wmo_enabled))
-                self.make_buckconfig_local(buckconfig_path, build_trace_path, wmo_enabled)
-
-                for gen_type in ModuleGenType.enum_list():
-                    build_app_type(gen_type, wmo_enabled, xcode_name)
-
-        logging.warn('Removing .buckconfig.local file at: %s', buckconfig_path)
-        os.remove(buckconfig_path)
-        build_time_file.close()
-        build_time_csv_file.close()
-
-        cpu_logger.stop()
-        self.apply_cpu_to_traces(build_trace_path, cpu_logger)
-
-    def apply_cpu_to_traces(self, build_trace_path, cpu_logger):
+    @staticmethod
+    def apply_cpu_to_traces(build_trace_path, cpu_logger):
+        # TODO make this only apply to new traces
         logging.info('Applying CPU info to traces in %s', build_trace_path)
         cpu_logs = cpu_logger.process_log()
         trace_paths = [join(build_trace_path, f) for f in os.listdir(build_trace_path) if f.endswith('trace')]
@@ -221,6 +93,32 @@ class CommandLineInterface(object):
             with open(trace_path+'.json', 'w') as new_trace_file:
                 json.dump(new_traces, new_trace_file)
 
+
+class CommandLineMain(object):
+
+    def make_args(self):
+        """Parses command line arguments"""
+        arg_desc = 'Generate a fake test project with many buck modules'
+
+        parser = argparse.ArgumentParser(description=arg_desc)
+
+        parser.add_argument('-o', '--output_directory', required=True,
+                            help='Where the mock project should be output.')
+        parser.add_argument('-bmp', '--buck_module_path', required=True,
+                            help='The root of the BUCK dependency path of the generated code.')
+        parser.add_argument('-loc', '--total_lines_of_code', type=int, default=1500000,
+                            help='How many approx lines of code should be generated.')
+        parser.add_argument('-gt', '--gen_type', required=True, choices=ModuleGenType.enum_list(),
+                            help='What kind of mock app generation you want.')
+
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('-mc', '--module_count', type=int,
+                           help='How many modules your fake app should contain.  In big small (bs_) mock types, it specifies the small module count.')
+        group.add_argument('-dot', '--dot_file',
+                           help='Generate a project based on a dot file representation from a `buck query "deps(target)" --dot` output')
+
+        return parser, parser.parse_args()
+
     def main(self):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
         start = time.time()
@@ -228,9 +126,9 @@ class CommandLineInterface(object):
         dot_path = args.dot_file if hasattr(args, 'dot_file') else None
         module_count = args.module_count if hasattr(args, 'module_count') else 0
 
-        app_node, node_list = self.gen_graph(args.gen_type, dot_path, module_count)
+        app_node, node_list = CommandLineCommon.gen_graph(args.gen_type, dot_path, module_count)
 
-        self.del_old_output_dir(args.output_directory)
+        CommandLineCommon.del_old_output_dir(args.output_directory)
         gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)
 
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
