@@ -58,6 +58,8 @@ class CommandLineCommon(object):
         config.set(uber_section, 'xcode_tracing_path', build_trace_path)
         config.set(uber_section, 'chrome_trace_build_times', 'true')
         config.set(uber_section, 'whole_module_optimization', str(wmo_enabled))
+        config.add_section('project')
+        config.set('project', 'ide_force_kill', 'never')
 
         with open(buckconfig_path, 'w') as buckconfig:
             config.write(buckconfig)

@@ -1,6 +1,7 @@
 import subprocess
 import os
 import sys
+import logging
 from tempfile import TemporaryFile
 
 
@@ -77,8 +78,20 @@ class CPULogger(object):
 
     def stop(self):
         if self.process:
+            # TODO doesn't do anything, either because top runs as root and thus you need
+            # to be root to kill it or some process group thing we are not doing properly
+            # self.process.kill() doesnt work either.
             self.process.terminate()
             self.process = None
+
+    def kill(self):
+        self.stop()
+        command = ['sudo', 'killall', 'top']
+        logging.warning('Killing dangling CPU monitor with sudo. Command: `%s`', ' '.join(command))
+        try:
+            subprocess.check_call(command)
+        except subprocess.CalledProcessError as e:
+            logging.info("Error killing top command: %s", str(e))
 
     def process_log(self):
         self.stop()

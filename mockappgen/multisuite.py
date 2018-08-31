@@ -60,8 +60,8 @@ class CommandLineMultisuite(object):
 
         parser.add_argument('--switch_xcode_versions', action='store_true',
                             help='Switch xcode verions as part of the full multisuite test. Requires sudo.')
-        parser.add_argument('--skip_clean', action='store_true',
-                            help="Skip calling `./xcode clean`  Still removes the mock app's custom DerivedData folder")
+        parser.add_argument('--full_clean', action='store_true',
+                            help="Call `./xcode clean` to remove all xcode build caches.")
         parser.add_argument('--skip_xcode_build', action='store_true',
                             help='Skips building the mock apps.  Useful for speeding up testing.')
         parser.add_argument('--test_build_only', action='store_true',
@@ -75,20 +75,24 @@ class CommandLineMultisuite(object):
         self.switch_xcode_versions = args.switch_xcode_versions
         self.run_xcodebuild = (not args.skip_xcode_build)
         self.test_build_only = args.test_build_only
-        self.skip_clean = args.skip_clean
+        self.full_clean = args.full_clean
 
     def main(self):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
         args = self.parse_args()
         self.set_args_as_vars(args)
-        self.run_multisuite()
+        try:
+            self.run_multisuite()
+        finally:
+            self.multisuite_cleanup()
 
     def make_context(self, log_dir, ios_git_root, test_build):
+        self.cpu_logger = CPULogger()
         self.settings_state = SettingsState(ios_git_root)
         self.log_dir = log_dir
         self.ios_git_root = ios_git_root
-        self.monorepo_binary = join(ios_git_root, "monorepo")
-        self.xcode_util_binary = join(ios_git_root, "xcode")
+        self.monorepo_binary = join(ios_git_root, "monorepo")  # TODO make this generalizable to a buck command
+        self.xcode_util_binary = join(ios_git_root, "xcode")  # TODO remove requirement for our custom binary
         self.mock_app_workspace = join(ios_git_root, 'apps', 'mockapp', 'App', 'MockApp.xcworkspace')
         self.mock_output_dir = join(ios_git_root, 'apps', 'mockapp')
         self.dot_file_path = join(log_dir, 'helix_deps.gv')
@@ -138,6 +142,7 @@ class CommandLineMultisuite(object):
         swift_loc = CommandLineCommon.count_swift_loc(self.mock_output_dir)
         logging.info('App type "%s" generated %d loc', gen_type, swift_loc)
 
+        # Build App
         total_time = 0
         if self.run_xcodebuild:
             logging.info('Generate xcode workspace & clean')
@@ -147,7 +152,8 @@ class CommandLineMultisuite(object):
             makedir(derived_data_path)
 
             subprocess.check_call([self.monorepo_binary, 'project', self.app_buck_path, '-d'])
-            if not self.skip_clean:
+            if self.full_clean:
+                logging.info("Fully cleaning xcode caches")
                 subprocess.check_call([self.xcode_util_binary, 'clean'])
 
             logging.info('Start xcodebuild')
@@ -164,6 +170,7 @@ class CommandLineMultisuite(object):
         else:
             logging.info('Skipping xcodebuild')
 
+        # Log Results
         build_end = str(datetime.datetime.now())
         log_statement = '{} w/ {} (loc: {}) modules took {} s\n'.format(
             gen_info, len(node_list), swift_loc, total_time)
@@ -216,13 +223,15 @@ class CommandLineMultisuite(object):
         self.project_generator = modulegen.BuckProjectGenerator(self.mock_output_dir, self.buck_path)
 
     def multisuite_cleanup(self):
-        self.build_time_file.close()
-        self.build_time_csv_file.close()
-
+        logging.info("Cleaning up multisuite build test")
         self.settings_state.restore_buckconfig_local()
 
         if self.switch_xcode_versions:
             self.settings_state.restore_xcode_select()
+
+        self.build_time_file.close()
+        self.build_time_csv_file.close()
+        self.cpu_logger.kill()
 
     def switch_xcode_version(self, xcode_version):
         logging.warning('Switching to xcode version %d', xcode_version)
@@ -238,8 +247,7 @@ class CommandLineMultisuite(object):
     def run_multisuite(self):
         self.multisuite_setup()
 
-        cpu_logger = CPULogger()
-        cpu_logger.start()
+        self.cpu_logger.start()
 
         for xcode_version in self.xcode_versions:
             if self.switch_xcode_versions:
@@ -252,7 +260,5 @@ class CommandLineMultisuite(object):
                 for gen_type in self.type_list:
                     self.build_app_type(gen_type, wmo_enabled)
 
-        self.multisuite_cleanup()
-
-        cpu_logger.stop()
-        CommandLineCommon.apply_cpu_to_traces(self.build_trace_path, cpu_logger)
+        self.cpu_logger.stop()
+        CommandLineCommon.apply_cpu_to_traces(self.build_trace_path, self.cpu_logger)
