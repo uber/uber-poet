@@ -55,11 +55,13 @@ class CommandLineMultisuite(object):
         parser = argparse.ArgumentParser(description='Build all mock app types and log times to a log file.')
         parser.add_argument('--log_dir', required=True,
                             help='Where logs such as build times should exist.')
-        parser.add_argument('--git_root', required=True,
+        parser.add_argument('--ios_git_root', required=True,
                             help='Where the ios monorepo checkout is.')
 
         parser.add_argument('--switch_xcode_versions', action='store_true',
                             help='Switch xcode verions as part of the full multisuite test. Requires sudo.')
+        parser.add_argument('--skip_clean', action='store_true',
+                            help="Skip calling `./xcode clean`  Still removes the mock app's custom DerivedData folder")
         parser.add_argument('--skip_xcode_build', action='store_true',
                             help='Skips building the mock apps.  Useful for speeding up testing.')
         parser.add_argument('--test_build_only', action='store_true',
@@ -67,11 +69,19 @@ class CommandLineMultisuite(object):
 
         return parser.parse_args()
 
+    def set_args_as_vars(self, args):
+        self.log_dir = args.log_dir
+        self.ios_git_root = args.ios_git_root
+        self.switch_xcode_versions = args.switch_xcode_versions
+        self.run_xcodebuild = (not args.skip_xcode_build)
+        self.test_build_only = args.test_build_only
+        self.skip_clean = args.skip_clean
+
     def main(self):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
         args = self.parse_args()
-        self.multisuite(args.log_dir, args.git_root, args.switch_xcode_versions,
-                        (not args.skip_xcode_build), args.test_build_only)
+        self.set_args_as_vars(args)
+        self.run_multisuite()
 
     def make_context(self, log_dir, ios_git_root, test_build):
         self.settings_state = SettingsState(ios_git_root)
@@ -131,14 +141,23 @@ class CommandLineMultisuite(object):
         total_time = 0
         if self.run_xcodebuild:
             logging.info('Generate xcode workspace & clean')
+
+            derived_data_path = '/tmp/ub_mockapp_derived_data'
+            shutil.rmtree(derived_data_path, ignore_errors=True)
+            makedir(derived_data_path)
+
             subprocess.check_call([self.monorepo_binary, 'project', self.app_buck_path, '-d'])
-            subprocess.check_call([self.xcode_util_binary, 'clean'])
+            if not self.skip_clean:
+                subprocess.check_call([self.xcode_util_binary, 'clean'])
 
             logging.info('Start xcodebuild')
             start = time.time()
             with open(build_log_path, 'w') as build_log_file:
-                subprocess.check_call(['xcodebuild', 'build', '-scheme', 'MockApp', '-sdk',
-                                       'iphonesimulator', '-workspace', self.mock_app_workspace],
+                subprocess.check_call(['xcodebuild', 'build',
+                                       '-scheme', 'MockApp',
+                                       '-sdk', 'iphonesimulator',
+                                       '-workspace', self.mock_app_workspace,
+                                       '-derivedDataPath', derived_data_path],
                                       stdout=build_log_file, stderr=build_log_file)
             end = time.time()
             total_time = int(end-start)
@@ -169,19 +188,17 @@ class CommandLineMultisuite(object):
         if missing:
             raise OSError("Missing required binaries: {}".format(str(missing)))
 
-    def multisuite_setup(self, log_dir, ios_git_root, switch_xcode, run_xcodebuild, test_build):
-        self.make_context(log_dir, ios_git_root, test_build)
-        self.run_xcodebuild = run_xcodebuild
+    def multisuite_setup(self):
+        self.make_context(self.log_dir, self.ios_git_root, self.test_build_only)
         self.settings_state.save_buckconfig_local()
         self.settings_state.save_xcode_select()
-        self.switch_xcode = switch_xcode
 
         # Don't want to run twice if xcode_switching is disabled
-        self.xcode_versions = [9, 10] if switch_xcode else [-1]
+        self.xcode_versions = [9, 10] if self.switch_xcode_versions else [-1]
 
         self.verify_dependencies()
 
-        makedir(log_dir)
+        makedir(self.log_dir)
         makedir(self.build_trace_path)
 
         logging.info('Starting build session')
@@ -204,7 +221,7 @@ class CommandLineMultisuite(object):
 
         self.settings_state.restore_buckconfig_local()
 
-        if self.switch_xcode:
+        if self.switch_xcode_versions:
             self.settings_state.restore_xcode_select()
 
     def switch_xcode_version(self, xcode_version):
@@ -218,14 +235,14 @@ class CommandLineMultisuite(object):
 
         subprocess.check_call(['sudo', 'xcode-select', '-s', self.xcode_paths[xcode_version]])
 
-    def multisuite(self, log_dir, ios_git_root, switch_xcode=False, run_xcodebuild=True, test_build=False):
-        self.multisuite_setup(log_dir, ios_git_root, switch_xcode, run_xcodebuild, test_build)
+    def run_multisuite(self):
+        self.multisuite_setup()
 
         cpu_logger = CPULogger()
         cpu_logger.start()
 
         for xcode_version in self.xcode_versions:
-            if switch_xcode:
+            if self.switch_xcode_versions:
                 self.switch_xcode_version(xcode_version)
 
             for wmo_enabled in self.wmo_modes:
