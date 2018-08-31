@@ -130,7 +130,6 @@ class CommandLineMultisuite(object):
         gen_info = '{} (wmo_enabled: {}, xcode_version: {} {})'.format(
             gen_type, wmo_enabled, xcode_version, xcode_build_id)
         logging.info('##### Generating %s', gen_info)
-        subprocess.check_call(['xcodebuild', '-version'], stdout=self.build_time_file)
 
         CommandLineCommon.del_old_output_dir(self.mock_output_dir)
 
@@ -237,8 +236,8 @@ class CommandLineMultisuite(object):
         logging.warning('Switching to xcode version %d', xcode_version)
 
         if not sudo_enabled():
-            logging.warning('I would suggest extending your sudo time out to 1 day so you can do the full suite')
-            logging.warning('unattended: https://lifehacker.com/make-sudo-sessions-last-longer-in-linux-1221545774')
+            logging.warning('I would suggest executing this in a bash script and adding a sudo keep alive so you')
+            logging.warning('can run this fully unattended: https://gist.github.com/cowboy/3118588')
             logging.warning("If you don't, then half way through the build suite, it will stall asking for a password.")
             logging.warning("I don't know how to make xcode-select -s not require sudo unfortunately.")
 
