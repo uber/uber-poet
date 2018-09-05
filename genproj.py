@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from mockappgen.commandline import CommandLineInterface
+from mockappgen.commandline import CommandLineMain
 
 if __name__ == "__main__":
-    CommandLineInterface().main()
+    CommandLineMain().main()

@@ -34,13 +34,6 @@ def merge_lists(two_d_list):
     return [i for li in two_d_list for i in li]
 
 
-def parse_xcode_version():
-    version_out = subprocess.check_output(['xcodebuild', '-version']).splitlines()
-    version_num = version_out[0].split(' ')[1]
-    build_id = version_out[1].split(' ')[2]
-    return version_num, build_id
-
-
 def sudo_enabled():
     try:
         subprocess.check_call(['sudo', '-n', 'true'])
@@ -55,3 +48,15 @@ def check_dependent_commands(command_list):
         if not distutils.spawn.find_executable(command):
             missing_commands.append(command)
     return missing_commands
+
+
+def pad_list(l, size, value=0):
+    if len(l) >= size:
+        return l
+
+    return l + ([value] * (size - len(l)))
+
+
+def grab_mac_marketing_name():
+    script_path = os.path.join(os.path.dirname(__file__), "resources", "get_market_name.sh")
+    return subprocess.check_output([script_path])

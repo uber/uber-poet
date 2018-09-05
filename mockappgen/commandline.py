@@ -32,12 +32,12 @@ class CommandLineCommon(object):
         elif gen_type == ModuleGenType.bs_layered:
             app_node, node_list = ModuleNode.gen_layered_big_small_graph(big_modules, module_count)
         elif dot_path and gen_type == ModuleGenType.dot:
-            print "Reading dot file:", dot_path
+            logging.info("Reading dot file: %s", dot_path)
             app_node, node_list = dotreader.DotFileReader().read_dot_file(dot_path)
         else:
-            print "Unexpected argument set, aborting."
-            print "Choose from ({})".format(', '.join(ModuleGenType.enum_list())
-                                            ), 'module count', module_count, 'dot path', dot_path
+            logging.error("Unexpected argument set, aborting.")
+            item_list = ', '.join(ModuleGenType.enum_list())
+            logging.error("Choose from ({}) module count: {} dot path: {} ".format(item_list, module_count, dot_path))
             raise ValueError("Invalid Arguments")  # TODO better error raising
 
         return app_node, node_list

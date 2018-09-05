@@ -90,8 +90,8 @@ class CPULogger(object):
         logging.warning('Killing dangling CPU monitor with sudo. Command: `%s`', ' '.join(command))
         try:
             subprocess.check_call(command)
-        except subprocess.CalledProcessError as e:
-            logging.info("Error killing top command: %s", str(e))
+        except subprocess.CalledProcessError:
+            logging.info("Error killing top command")
 
     def process_log(self):
         self.stop()

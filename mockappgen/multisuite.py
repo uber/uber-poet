@@ -1,4 +1,3 @@
-import os
 import argparse
 import logging
 import subprocess
@@ -9,44 +8,10 @@ import shutil
 
 from cpulogger import CPULogger
 from moduletree import ModuleGenType
-from util import makedir, parse_xcode_version, sudo_enabled, check_dependent_commands
+from statemanagement import XcodeManager, SettingsState
+from util import makedir, sudo_enabled, check_dependent_commands, grab_mac_marketing_name
 from os.path import join
 from commandline import CommandLineCommon
-
-
-class SettingsState(object):
-    def __init__(self, git_root):
-        self.git_root = git_root
-        self.have_backed_up = False
-        self.local_path = join(self.git_root, '.buckconfig.local')
-        self.backup_path = join(self.git_root, '.buckconfig.local.bak')
-        self.select_path = None
-
-    def save_buckconfig_local(self):
-        if os.path.exists(self.backup_path):
-            os.remove(self.backup_path)
-        if os.path.exists(self.local_path):
-            logging.info('Backing up .buckconfig.local to .buckconfig.local.bak')
-            shutil.copy2(self.local_path, self.backup_path)
-            self.have_backed_up = True
-        else:
-            logging.info('No .buckconfig.local to back up, skipping')
-
-    def restore_buckconfig_local(self):
-        if self.have_backed_up:
-            logging.info('Restoring .buckconfig.local')
-            os.remove(self.local_path)
-            shutil.copy2(self.backup_path, self.local_path)
-            os.remove(self.backup_path)
-            self.have_backed_up = False
-
-    def save_xcode_select(self):
-        self.select_path = subprocess.check_output(['xcode-select', '-p']).rstrip()
-
-    def restore_xcode_select(self):
-        if self.select_path:
-            logging.info('Restoring xcode-select path to %s', self.select_path)
-            subprocess.check_call(['sudo', 'xcode-select', '-s', self.select_path])
 
 
 class CommandLineMultisuite(object):
@@ -88,13 +53,16 @@ class CommandLineMultisuite(object):
 
     def make_context(self, log_dir, ios_git_root, test_build):
         self.cpu_logger = CPULogger()
+        self.xcode_manager = XcodeManager()
         self.settings_state = SettingsState(ios_git_root)
+
         self.log_dir = log_dir
         self.ios_git_root = ios_git_root
         self.monorepo_binary = join(ios_git_root, "monorepo")  # TODO make this generalizable to a buck command
         self.xcode_util_binary = join(ios_git_root, "xcode")  # TODO remove requirement for our custom binary
         self.mock_app_workspace = join(ios_git_root, 'apps', 'mockapp', 'App', 'MockApp.xcworkspace')
         self.mock_output_dir = join(ios_git_root, 'apps', 'mockapp')
+        self.sys_info_path = join(log_dir, 'system_info.txt')
         self.dot_file_path = join(log_dir, 'helix_deps.gv')
         self.build_time_path = join(log_dir, 'build_times.txt')
         self.build_time_csv_path = join(log_dir, 'build_times.csv')
@@ -102,10 +70,6 @@ class CommandLineMultisuite(object):
         self.buckconfig_path = join(ios_git_root, '.buckconfig.local')
         self.buck_path = '/apps/mockapp'
         self.app_buck_path = "/{}/App:MockApp".format(self.buck_path)
-        self.xcode_paths = {  # TODO a better way to specify xcode versions to test
-            9: '/Applications/Xcode.9.4.1.9F2000.app/',
-            10: '/Applications/Xcode-beta.app/',
-        }
 
         if test_build:
             logging.info("Using test build settings")
@@ -123,7 +87,7 @@ class CommandLineMultisuite(object):
             self.type_list = ModuleGenType.enum_list()
 
     def build_app_type(self, gen_type, wmo_enabled):
-        xcode_version, xcode_build_id = parse_xcode_version()
+        xcode_version, xcode_build_id = XcodeManager.get_current_xcode_version()
         xcode_name = '{}_'.format(xcode_version.replace('.', '_'))
         build_log_path = join(self.log_dir, '{}{}_mockapp_build_log.txt'.format(xcode_name, gen_type))
 
@@ -194,13 +158,28 @@ class CommandLineMultisuite(object):
         if missing:
             raise OSError("Missing required binaries: {}".format(str(missing)))
 
+    def dump_system_info(self):
+        logging.info('Recording device info')
+        with open(self.sys_info_path, 'w') as info_file:
+            info_file.write(grab_mac_marketing_name())
+            info_file.write('\n')
+            info_file.flush()
+            subprocess.check_call(['system_profiler', 'SPHardwareDataType', '-detailLevel', 'mini'], stdout=info_file)
+            subprocess.check_call(['sw_vers'], stdout=info_file)
+
     def multisuite_setup(self):
         self.make_context(self.log_dir, self.ios_git_root, self.test_build_only)
         self.settings_state.save_buckconfig_local()
         self.settings_state.save_xcode_select()
 
-        # Don't want to run twice if xcode_switching is disabled
-        self.xcode_versions = [9, 10] if self.switch_xcode_versions else [-1]
+        if self.switch_xcode_versions:
+            self.sudo_warning()
+            self.xcode_paths = self.xcode_manager.discover_xcode_versions()
+            self.xcode_versions = self.xcode_paths.keys()
+            logging.info("Discovered xcode verions: %s", str(self.xcode_versions))
+        else:
+            self.xcode_paths = {}
+            self.xcode_versions = [None]
 
         self.verify_dependencies()
 
@@ -214,6 +193,8 @@ class CommandLineMultisuite(object):
         now = str(datetime.datetime.now())
         self.build_time_file.write('Build session started at {}\n'.format(now))
         self.build_time_file.flush()
+
+        self.dump_system_info()
 
         with open(self.dot_file_path, 'w') as dot_file:
             logging.info('Generate dot graph')
@@ -232,16 +213,16 @@ class CommandLineMultisuite(object):
         self.build_time_csv_file.close()
         self.cpu_logger.kill()
 
-    def switch_xcode_version(self, xcode_version):
-        logging.warning('Switching to xcode version %d', xcode_version)
-
+    def sudo_warning(self):
         if not sudo_enabled():
             logging.warning('I would suggest executing this in a bash script and adding a sudo keep alive so you')
             logging.warning('can run this fully unattended: https://gist.github.com/cowboy/3118588')
             logging.warning("If you don't, then half way through the build suite, it will stall asking for a password.")
             logging.warning("I don't know how to make xcode-select -s not require sudo unfortunately.")
 
-        subprocess.check_call(['sudo', 'xcode-select', '-s', self.xcode_paths[xcode_version]])
+    def switch_xcode_version(self, xcode_version):
+        logging.warning('Switching to xcode version %s', str(xcode_version))
+        self.xcode_manager.switch_xcode_version(self.xcode_paths[xcode_version])
 
     def run_multisuite(self):
         self.multisuite_setup()
