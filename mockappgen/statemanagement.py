@@ -2,6 +2,8 @@ import subprocess
 import os
 import logging
 import shutil
+import sys
+import getpass
 
 from os.path import join
 from util import pad_list
@@ -82,6 +84,30 @@ class XcodeManager(object):
         out = XcodeVersion.choose_latest_major_versions(out)
 
         return out
+
+    def _get_global_module_cache_dir(self):
+        try:
+            username = getpass.getuser()
+        except Exception as e:
+            sys.exit(str(e))
+
+        cache_dir = subprocess.check_output(['getconf', 'DARWIN_USER_CACHE_DIR']).rstrip()
+        user_dir = 'org.llvm.clang.{}'.format(username)
+        return os.path.join(cache_dir, user_dir, 'ModuleCache')
+
+    def clean_caches(self):
+        logging.info('Cleaning Xcode caches...')
+
+        DIRECTORIES_TO_DELETE = (
+            '~/Library/Caches/com.apple.dt.Xcode',
+            '~/Library/Developer/Xcode/DerivedData',
+            self._get_global_module_cache_dir(),
+        )
+
+        for directory in DIRECTORIES_TO_DELETE:
+            full_path = os.path.expanduser(directory)
+            logging.info('Removing %s', full_path)
+            subprocess.check_call(['rm', '-fr', full_path])
 
 
 class XcodeVersion(object):

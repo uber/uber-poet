@@ -11,22 +11,31 @@ from moduletree import ModuleGenType
 from statemanagement import XcodeManager, SettingsState
 from util import makedir, sudo_enabled, check_dependent_commands, grab_mac_marketing_name
 from os.path import join
-from commandline import CommandLineCommon
+import commandline
 
 
 class CommandLineMultisuite(object):
 
     def parse_args(self):
         parser = argparse.ArgumentParser(description='Build all mock app types and log times to a log file.')
-        parser.add_argument('--log_dir', required=True,
-                            help='Where logs such as build times should exist.')
-        parser.add_argument('--ios_git_root', required=True,
-                            help='Where the ios monorepo checkout is.')
 
+        # Output dirs
+        parser.add_argument('--log_dir', default='/tmp/mock_app_gen_out/logs',
+                            help='Where logs such as build times should exist.')
+        parser.add_argument('--app_gen_output_dir', default='/tmp/mock_app_gen_out',
+                            help='Where generated mock apps should be outputted to.')
+
+        # Command tools
+        parser.add_argument('--buck_command', default='buck',
+                            help='The path to the buck binary.  Defaults to `buck`.')
+
+        # Test loop actions
         parser.add_argument('--switch_xcode_versions', action='store_true',
                             help='Switch xcode verions as part of the full multisuite test. Requires sudo.')
         parser.add_argument('--full_clean', action='store_true',
-                            help="Call `./xcode clean` to remove all xcode build caches.")
+                            help="Clean all default xcode cache directories to prevent cache effects changing test results.")
+
+        # Testing
         parser.add_argument('--skip_xcode_build', action='store_true',
                             help='Skips building the mock apps.  Useful for speeding up testing.')
         parser.add_argument('--test_build_only', action='store_true',
@@ -36,7 +45,8 @@ class CommandLineMultisuite(object):
 
     def set_args_as_vars(self, args):
         self.log_dir = args.log_dir
-        self.ios_git_root = args.ios_git_root
+        self.output_dir = args.app_gen_output_dir
+        self.buck_binary = args.buck_command
         self.switch_xcode_versions = args.switch_xcode_versions
         self.run_xcodebuild = (not args.skip_xcode_build)
         self.test_build_only = args.test_build_only
@@ -51,23 +61,23 @@ class CommandLineMultisuite(object):
         finally:
             self.multisuite_cleanup()
 
-    def make_context(self, log_dir, ios_git_root, test_build):
+    def make_context(self, log_dir, output_dir, test_build):
         self.cpu_logger = CPULogger()
         self.xcode_manager = XcodeManager()
-        self.settings_state = SettingsState(ios_git_root)
+        self.settings_state = SettingsState(output_dir)
 
         self.log_dir = log_dir
-        self.ios_git_root = ios_git_root
-        self.monorepo_binary = join(ios_git_root, "monorepo")  # TODO make this generalizable to a buck command
-        self.xcode_util_binary = join(ios_git_root, "xcode")  # TODO remove requirement for our custom binary
-        self.mock_app_workspace = join(ios_git_root, 'apps', 'mockapp', 'App', 'MockApp.xcworkspace')
-        self.mock_output_dir = join(ios_git_root, 'apps', 'mockapp')
+        self.output_dir = output_dir
+
+        self.mock_output_dir = join(output_dir, 'apps', 'mockapp')
+        self.mock_app_workspace = join(self.mock_output_dir, 'App', 'MockApp.xcworkspace')
+        self.buckconfig_path = join(output_dir, '.buckconfig.local')
+
         self.sys_info_path = join(log_dir, 'system_info.txt')
         self.dot_file_path = join(log_dir, 'helix_deps.gv')
         self.build_time_path = join(log_dir, 'build_times.txt')
         self.build_time_csv_path = join(log_dir, 'build_times.csv')
         self.build_trace_path = join(log_dir, 'build_traces')
-        self.buckconfig_path = join(ios_git_root, '.buckconfig.local')
         self.buck_path = '/apps/mockapp'
         self.app_buck_path = "/{}/App:MockApp".format(self.buck_path)
 
@@ -95,14 +105,14 @@ class CommandLineMultisuite(object):
             gen_type, wmo_enabled, xcode_version, xcode_build_id)
         logging.info('##### Generating %s', gen_info)
 
-        CommandLineCommon.del_old_output_dir(self.mock_output_dir)
+        commandline.del_old_output_dir(self.mock_output_dir)
 
         logging.info('Generating mock app')
         module_count = self.bs_mod_count if 'bs' in gen_type else self.normal_mod_count
-        app_node, node_list = CommandLineCommon.gen_graph(gen_type, self.dot_file_path, module_count)
+        app_node, node_list = commandline.gen_graph(gen_type, self.dot_file_path, module_count)
         self.project_generator.gen_app(app_node, node_list, self.loc)
 
-        swift_loc = CommandLineCommon.count_swift_loc(self.mock_output_dir)
+        swift_loc = commandline.count_loc(self.mock_output_dir)
         logging.info('App type "%s" generated %d loc', gen_type, swift_loc)
 
         # Build App
@@ -114,10 +124,9 @@ class CommandLineMultisuite(object):
             shutil.rmtree(derived_data_path, ignore_errors=True)
             makedir(derived_data_path)
 
-            subprocess.check_call([self.monorepo_binary, 'project', self.app_buck_path, '-d'])
+            subprocess.check_call([self.buck_binary, 'project', self.app_buck_path, '-d'])
             if self.full_clean:
-                logging.info("Fully cleaning xcode caches")
-                subprocess.check_call([self.xcode_util_binary, 'clean'])
+                self.xcode_manager.clean_caches()
 
             logging.info('Start xcodebuild')
             start = time.time()
@@ -147,7 +156,7 @@ class CommandLineMultisuite(object):
 
     def verify_dependencies(self):
         xcode = ['xcodebuild', 'xcode-select']
-        local = [self.monorepo_binary, self.xcode_util_binary]
+        local = [self.buck_binary]
         missing = check_dependent_commands(xcode + local)
 
         if missing == xcode:
@@ -168,7 +177,7 @@ class CommandLineMultisuite(object):
             subprocess.check_call(['sw_vers'], stdout=info_file)
 
     def multisuite_setup(self):
-        self.make_context(self.log_dir, self.ios_git_root, self.test_build_only)
+        self.make_context(self.log_dir, self.output_dir, self.test_build_only)
         self.settings_state.save_buckconfig_local()
         self.settings_state.save_xcode_select()
 
@@ -198,7 +207,7 @@ class CommandLineMultisuite(object):
 
         with open(self.dot_file_path, 'w') as dot_file:
             logging.info('Generate dot graph')
-            subprocess.check_call([self.monorepo_binary, 'query', "deps(helix)", '--dot'], stdout=dot_file)
+            subprocess.check_call([self.buck_binary, 'query', "deps(helix)", '--dot'], stdout=dot_file)
 
         self.project_generator = modulegen.BuckProjectGenerator(self.mock_output_dir, self.buck_path)
 
@@ -235,10 +244,10 @@ class CommandLineMultisuite(object):
 
             for wmo_enabled in self.wmo_modes:
                 logging.info('Swift WMO Enabled: {}'.format(wmo_enabled))
-                CommandLineCommon.make_buckconfig_local(self.buckconfig_path, self.build_trace_path, wmo_enabled)
+                commandline.make_buckconfig_local(self.buckconfig_path, self.build_trace_path, wmo_enabled)
 
                 for gen_type in self.type_list:
                     self.build_app_type(gen_type, wmo_enabled)
 
         self.cpu_logger.stop()
-        CommandLineCommon.apply_cpu_to_traces(self.build_trace_path, self.cpu_logger)
+        commandline.apply_cpu_to_traces(self.build_trace_path, self.cpu_logger)
