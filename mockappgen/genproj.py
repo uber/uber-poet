@@ -18,34 +18,33 @@ class GenProjCommandLine(object):
                             help='Where the mock project should be output.')
         parser.add_argument('-bmp', '--buck_module_path', required=True,
                             help='The root of the BUCK dependency path of the generated code.')
-        parser.add_argument('-loc', '--total_lines_of_code', type=int, default=1500000,
-                            help='How many approx lines of code should be generated.')
+
         parser.add_argument('-gt', '--gen_type', required=True, choices=ModuleGenType.enum_list(),
                             help='What kind of mock app generation you want.')
 
-        group = parser.add_mutually_exclusive_group(required=True)
-        group.add_argument('-mc', '--module_count', type=int,
-                           help='How many modules your fake app should contain.  In big small (bs_) mock types, it specifies the small module count.')
-        group.add_argument('-dot', '--dot_file',
-                           help='Generate a project based on a dot file representation from a `buck query "deps(target)" --dot` output')
+        commandline.AppGenerationConfig.add_app_gen_options(parser)
+        args = parser.parse_args()
+        commandline.AppGenerationConfig.validate_app_gen_options(args)
 
-        return parser, parser.parse_args()
+        return args
 
     def main(self):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
         start = time.time()
-        _, args = self.make_args()
-        dot_path = args.dot_file if hasattr(args, 'dot_file') else None
-        module_count = args.module_count if hasattr(args, 'module_count') else 0
 
-        app_node, node_list = commandline.gen_graph(args.gen_type, dot_path, module_count)
+        args = self.make_args()
+
+        graph_config = commandline.AppGenerationConfig()
+        graph_config.pull_from_args(args)
+        app_node, node_list = commandline.gen_graph(args.gen_type, graph_config)
 
         commandline.del_old_output_dir(args.output_directory)
         gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)
 
+        logging.info("Generation type: %s", args.gen_type)
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
-        logging.info("Example command: $ ./monorepo project /{}/App:MockApp".format(args.buck_module_path))
-        gen.gen_app(app_node, node_list, args.total_lines_of_code)
+        logging.info("Example command to generate xcode workspace: $ buck project /{}/App:MockApp".format(args.buck_module_path))
+        gen.gen_app(app_node, node_list, graph_config.lines_of_code)
 
         fin = time.time()
         logging.info("Done in %f s", fin-start)

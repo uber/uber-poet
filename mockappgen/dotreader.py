@@ -1,17 +1,31 @@
-from moduletree import ModuleNode
 import logging
+import os
+import tempfile
+
+from moduletree import ModuleNode
 from pprint import pprint
 from util import makedir
 from collections import defaultdict
 
+# Why filter out modules with these names?
+# We are trying to simulate a non-test app build and ignore non-code targets such as asset
+# catalogs and schemes. Each module currently gets a static amount of code created for it,
+# so non-code modules will add code to the total when they shouldn't if we didn't filter them out.
+DOT_MODULES_FILTER = ['test', 'scheme', 'assetcatalog', 'resources', 'fixture', 'needle']
+
 
 class DotFileReader(object):
-    """This class reads a dot file from a `buck query "deps(target)" --dot > file.gv` output 
+    """
+    This class reads a dot file from a `buck query "deps(target)" --dot > file.gv` output
     and translates it into a `ModuleNode` dependency graph for the `BuckProjectGenerator` class
-    to consume.  The entry point is `DotFileReader.read_dot_file(path)` """
+    to consume.  The entry point is `DotFileReader.read_dot_file(path)`
 
-    def read_dot_file(self, path):
-        """Reads a BUCK dependency dump in a dot/gv file at `path` and returns a `ModuleNode` 
+    Why make our own dot file parser vs using the two other python libaries available?  They're
+    really slow.  Probably because of some extra stuff we don't do.
+    """
+
+    def read_dot_file(self, path, root_node_name):
+        """Reads a BUCK dependency dump in a dot/gv file at `path` and returns a `ModuleNode`
         graph root and list of nodes to generate a mock app from it."""
         with open(path, 'r') as f:
             text = f.read()
@@ -29,7 +43,7 @@ class DotFileReader(object):
             logging.error(str(ident_names))
             raise ValueError("Dot file contains buck target names that are identical, but have different paths")
         else:
-            root, nodes = self.mod_graph_from_dep_map(dep_map)
+            root, nodes = self.mod_graph_from_dep_map(dep_map, root_node_name)
             logging.debug("%s %s total nodes: %d", root, root.deps, len(nodes))
             return root, nodes
 
@@ -48,11 +62,7 @@ class DotFileReader(object):
         def fil(line):
             lower = line.lower()
             bad_word = False
-            # Why filter out modules with these names?
-            # We are trying to simulate a non-test app build and ignore non-code targets such as asset
-            # catalogs and schemes. Each module currently gets a static amount of code created for it,
-            # so non-code modules will add code to the total when they shouldn't if we didn't filter them out.
-            for k in ['test', 'scheme', 'assetcatalog', 'resources', 'fixture']:
+            for k in DOT_MODULES_FILTER:
                 if k in lower:
                     bad_word = True
                     break
@@ -104,7 +114,7 @@ class DotFileReader(object):
         return seen
 
     def find_roots_in_dep_map(self, dep_map):
-        """Finds the roots in the DAG represented by a outgoing edge map.  
+        """Finds the roots in the DAG represented by a outgoing edge map.
         If it returns empty, then you have cycles and thus don't have a DAG."""
         incoming = self.incoming_edge_map_from_dep_map(dep_map)
         # A node with no incoming edges and some outgoing edges is a root in a DAG
@@ -123,7 +133,7 @@ class DotFileReader(object):
         return name_count
 
     def biggest_root(self, dep_map):
-        """Finds the root with the most reachable nodes under it inside a DAG.  
+        """Finds the root with the most reachable nodes under it inside a DAG.
         The biggest root is probably the app tree."""
         roots = self.find_roots_in_dep_map(dep_map)
         root_name = None
@@ -139,13 +149,17 @@ class DotFileReader(object):
                     root_name, max_size = r, size
         return root_name
 
-    def mod_graph_from_dep_map(self, dep_map):
-        "Converts an outgoing edge map (`dep_map`) into a ModuleNode graph that you can generate a mock app from"
+    def mod_graph_from_dep_map(self, dep_map, root_node_name):
+        """Converts an outgoing edge map (`dep_map`) into a ModuleNode graph
+        that you can generate a mock app from.  You have to provide the
+        root node / application node name (`root_node_name`) for the graph. """
         def make_mod(name):
             return ModuleNode(name, ModuleNode.LIBRARY)
 
         mod_map = {name: make_mod(name) for name in dep_map.keys()}
-        app_node = mod_map['Helix']  # TODO fix mod_map[self.biggest_root(dep_map)]
+        # TODO fix mod_map[self.biggest_root(dep_map)].  If this works you don't
+        # have to pass the app node name any more.
+        app_node = mod_map[root_node_name]
         app_node.node_type = ModuleNode.APP
 
         for name, deps in dep_map.iteritems():
@@ -161,7 +175,7 @@ class DotFileReader(object):
         return app_node, mod_map.values()
 
     def write_struct(self, struct, path):
-        "Writes generic python objects to disk"
+        "Writes generic python objects to disk (not deserializable)"
         with open(path, 'w') as f:
             pprint(struct, f)
 
@@ -173,7 +187,7 @@ class DotFileReader(object):
 
     def debug_dump(self, edges, structs):
         "Dumps various intermediate objects to files to help debugging"
-        dump_path = '/tmp/ub_graph_dump/'
+        dump_path = os.path.join(tempfile.gettempdir(), 'ub_dot_graph_dump')
         print 'Dumping debug structures to', dump_path
         makedir(dump_path)
 

@@ -7,6 +7,11 @@ class SeedContainer(object):
     seed = 0
 
 
+def bool_xor(a, b):
+    "Python's ^ operator is a bitwise xor, so we need to make a boolean equivalent function."
+    return (a and not b) or (not a and b)
+
+
 def seed():
     SeedContainer.seed += 1
     return SeedContainer.seed
@@ -43,11 +48,7 @@ def sudo_enabled():
 
 
 def check_dependent_commands(command_list):
-    missing_commands = []
-    for command in command_list:
-        if not distutils.spawn.find_executable(command):
-            missing_commands.append(command)
-    return missing_commands
+    return [command for command in command_list if not distutils.spawn.find_executable(command)]
 
 
 def pad_list(l, size, value=0):

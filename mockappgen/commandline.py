@@ -9,29 +9,76 @@ import json
 from cpulogger import CPULog
 from moduletree import ModuleNode, ModuleGenType
 from os.path import join
+from util import bool_xor
 
 
-def gen_graph(gen_type, dot_path=None, module_count=0):
+class AppGenerationConfig(object):
+    def __init__(self, module_count=0, big_module_count=0, small_module_count=0, lines_of_code=0, app_layer_count=0, dot_file_path='', dot_root_node_name=''):
+        self.module_count = module_count
+        self.big_module_count = big_module_count
+        self.small_module_count = small_module_count
+        self.lines_of_code = lines_of_code
+        self.app_layer_count = app_layer_count
+        self.dot_file_path = dot_file_path
+        self.dot_root_node_name = dot_root_node_name
+
+    def pull_from_args(self, args):
+        self.validate_app_gen_options(args)
+        self.module_count = args.module_count
+        self.big_module_count = args.big_module_count
+        self.small_module_count = args.small_module_count
+        self.lines_of_code = args.lines_of_code
+        self.app_layer_count = args.app_layer_count
+        self.dot_file_path = args.dot_file_path
+        self.dot_root_node_name = args.dot_root_node_name
+
+    @staticmethod
+    def add_app_gen_options(parser):
+        app = parser.add_argument_group('Mock app generation options')
+        app.add_argument('--module_count', default=100, type=int,
+                         help="How many modules should be in a normal mock app type."),
+        app.add_argument('--big_module_count', default=3, type=int,
+                         help="How many big modules should be in a big/small mock app type."),
+        app.add_argument('--small_module_count', default=50, type=int,
+                         help="How many small modules should be in a big/small mock app type."),
+        app.add_argument('--lines_of_code', default=1500000, type=int,
+                         help="Approximately how many lines of code each mock app should be."),  # 1.5 million lines of code
+        app.add_argument('--app_layer_count', default=10, type=int,
+                         help='How many module layers there should be in the layered mock app type.')
+
+        dot = parser.add_argument_group('Dot file mock app config')
+        dot.add_argument('--dot_file_path', default='', type=str,
+                         help="The path to the dot file to create a mock module graph from.  This dot file should come "
+                         "from a buck query like so: `buck query \"deps(target)\" --dot > file.gv`.")
+        dot.add_argument('--dot_root_node_name', default='', type=str,
+                         help="The name of the root application node of the dot file, such as 'App'")
+
+    @staticmethod
+    def validate_app_gen_options(args):
+        if bool_xor(args.dot_file_path, args.dot_root_node_name):
+            logging.info('dot_file_path: "%s" dot_root_node_name: "%s"', args.dot_file_path, args.dot_root_node_name)
+            raise ValueError('If you specify a dot file config option, you also have to specify the other one')
+
+
+def gen_graph(gen_type, config):
     app_node, node_list = None, None
 
-    big_modules = 3
-    layer_count = 10
-
     if gen_type == ModuleGenType.flat:
-        app_node, node_list = ModuleNode.gen_flat_graph(module_count)
+        app_node, node_list = ModuleNode.gen_flat_graph(config.module_count)
     elif gen_type == ModuleGenType.bs_flat:
-        app_node, node_list = ModuleNode.gen_flat_big_small_graph(big_modules, module_count)
+        app_node, node_list = ModuleNode.gen_flat_big_small_graph(config.big_modules, config.module_count)
     elif gen_type == ModuleGenType.layered:
-        app_node, node_list = ModuleNode.gen_layered_graph(layer_count, module_count / layer_count)
+        app_node, node_list = ModuleNode.gen_layered_graph(config.layer_count, config.module_count / config.layer_count)
     elif gen_type == ModuleGenType.bs_layered:
-        app_node, node_list = ModuleNode.gen_layered_big_small_graph(big_modules, module_count)
-    elif dot_path and gen_type == ModuleGenType.dot:
-        logging.info("Reading dot file: %s", dot_path)
-        app_node, node_list = dotreader.DotFileReader().read_dot_file(dot_path)
+        app_node, node_list = ModuleNode.gen_layered_big_small_graph(config.big_modules, config.module_count)
+    elif config.dot_file_path and config.dot_root_node_name and gen_type == ModuleGenType.dot:
+        logging.info("Reading dot file: %s", config.dot_file_path)
+        app_node, node_list = dotreader.DotFileReader().read_dot_file(config.dot_file_path, config.dot_root_node_name)
     else:
         logging.error("Unexpected argument set, aborting.")
         item_list = ', '.join(ModuleGenType.enum_list())
-        logging.error("Choose from ({}) module count: {} dot path: {} ".format(item_list, module_count, dot_path))
+        logging.error("Choose from ({}) module count: {} dot path: {} ".format(
+            item_list, config.module_count, config.dot_path))
         raise ValueError("Invalid Arguments")
 
     return app_node, node_list
@@ -43,7 +90,7 @@ def del_old_output_dir(output_directory):
         shutil.rmtree(output_directory)
 
 
-def make_buckconfig_local(buckconfig_path, build_trace_path, wmo_enabled):
+def make_uber_buckconfig_local(buckconfig_path, build_trace_path, wmo_enabled):
     logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
     config = ConfigParser.RawConfigParser()
     uber_section = 'uber'
@@ -76,12 +123,13 @@ def count_loc(code_path):
     return swift_loc
 
 
-def apply_cpu_to_traces(build_trace_path, cpu_logger):
-    # TODO make this only apply to new traces
+def apply_cpu_to_traces(build_trace_path, cpu_logger, time_cutoff=None):
     logging.info('Applying CPU info to traces in %s', build_trace_path)
     cpu_logs = cpu_logger.process_log()
     trace_paths = [join(build_trace_path, f) for f in os.listdir(build_trace_path) if f.endswith('trace')]
     for trace_path in trace_paths:
+        if time_cutoff and os.path.getmtime(trace_path) < time_cutoff:
+            continue
         with open(trace_path, 'r') as trace_file:
             traces = json.load(trace_file)
             new_traces = CPULog.apply_log_to_trace(cpu_logs, traces)

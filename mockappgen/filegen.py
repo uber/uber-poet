@@ -75,8 +75,8 @@ class SwiftFileGenerator(FileGenerator):
 
         return FileResult("\n".join(chunks), func_nums, class_nums)
 
-    def gen_main(self, module_name, class_num, func_num):
-        import_line = 'import {}'.format(module_name)
+    def gen_main(self, importing_module_name, class_num, func_num):
+        import_line = 'import {}'.format(importing_module_name)
         action_expr = 'MyClass{}().complexCrap{}(arg: 4,stuff: 2)'.format(class_num, func_num)
         print_line = 'print("\\({})")'.format(action_expr)
         return '\n'.join([import_line, print_line])

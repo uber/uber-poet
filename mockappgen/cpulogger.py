@@ -4,6 +4,8 @@ import sys
 import logging
 from tempfile import TemporaryFile
 
+# TODO Use psutil instead of top?
+
 
 class CPULog(object):
     EPOCH_MULT = 1000000
@@ -72,6 +74,8 @@ class CPULogger(object):
 
     def start(self):
         self.stop()
+        logging.warning(
+            'You will probably have to call `sudo killall top` to kill the CPU monitor after this python script finishes execution.')
         script_path = os.path.join(os.path.dirname(__file__), "resources", "cpu_log.sh")
         # MAJOR TODO deal with this still executing when the python program is killed
         self.process = subprocess.Popen([script_path], stdout=self.output)
