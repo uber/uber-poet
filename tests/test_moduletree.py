@@ -1,5 +1,5 @@
 import unittest
-from mockappgen.moduletree import ModuleNode
+from pearpoet.moduletree import ModuleNode
 
 
 class TestModuleTree(unittest.TestCase):

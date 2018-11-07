@@ -277,7 +277,7 @@ class CommandLineMultisuite(object):
 
             for wmo_enabled in self.wmo_modes:
                 logging.info('Swift WMO Enabled: {}'.format(wmo_enabled))
-                commandline.make_uber_buckconfig_local(
+                commandline.make_custom_buckconfig_local(
                     self.buckconfig_path, self.build_trace_path, wmo_enabled)
 
                 for gen_type in self.type_list:

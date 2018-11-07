@@ -1,8 +1,8 @@
 import unittest
 import os
 import tempfile
-from mockappgen.genproj import GenProjCommandLine
-from mockappgen.multisuite import CommandLineMultisuite
+from pearpoet.genproj import GenProjCommandLine
+from pearpoet.multisuite import CommandLineMultisuite
 
 
 class TestIntegration(unittest.TestCase):

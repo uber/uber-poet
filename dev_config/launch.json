@@ -1,0 +1,44 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: genproj.py",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/genproj.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--output_directory", "/tmp/genprojtest/mockapp" ,
+        "--buck_module_path", "/genprojtest/mockapp" ,
+        "--gen_type", "flat"
+      ]
+    },
+    {
+      "name": "Python: genproj.py dot",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/genproj.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--output_directory", "/tmp/genprojtest/mockapp" ,
+        "--buck_module_path", "/genprojtest/mockapp" ,
+        "--lines_of_code", "150000",
+        "--gen_type", "dot",
+        "--dot_file", "${workspaceFolder}/tests/fixtures/test_dot.gv",
+        "--dot_root", "DotReaderMainModule"
+      ]
+    },
+    {
+      "name": "Python: multisuite.py",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/multisuite.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--test_build_only",
+        "--log_dir", "/tmp/multisuite_build_results",
+        "--app_gen_output_dir", "${workspaceFolder}/../.."
+      ]
+    }
+  ]
+}

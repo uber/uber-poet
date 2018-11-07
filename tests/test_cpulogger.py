@@ -1,6 +1,6 @@
 import unittest
 import os
-from mockappgen.cpulogger import CPULog
+from pearpoet.cpulogger import CPULog
 
 
 class TestCPULogger(unittest.TestCase):

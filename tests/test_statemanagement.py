@@ -1,5 +1,5 @@
 import unittest
-from mockappgen.statemanagement import XcodeVersion
+from pearpoet.statemanagement import XcodeVersion
 
 
 class TestXcode(unittest.TestCase):
