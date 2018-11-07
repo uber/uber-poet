@@ -3,12 +3,13 @@ import logging
 import time
 import modulegen
 import commandline
+import sys
 from moduletree import ModuleGenType
 
 
 class GenProjCommandLine(object):
 
-    def make_args(self):
+    def make_args(self, args):
         """Parses command line arguments"""
         arg_desc = 'Generate a fake test project with many buck modules'
 
@@ -23,16 +24,16 @@ class GenProjCommandLine(object):
                             help='What kind of mock app generation you want.')
 
         commandline.AppGenerationConfig.add_app_gen_options(parser)
-        args = parser.parse_args()
+        args = parser.parse_args(args)
         commandline.AppGenerationConfig.validate_app_gen_options(args)
 
         return args
 
-    def main(self):
+    def main(self, args=sys.argv[1:]):
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
         start = time.time()
 
-        args = self.make_args()
+        args = self.make_args(args)
 
         graph_config = commandline.AppGenerationConfig()
         graph_config.pull_from_args(args)

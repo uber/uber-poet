@@ -7,6 +7,7 @@ import modulegen
 import shutil
 import commandline
 import tempfile
+import sys
 
 from cpulogger import CPULogger
 from moduletree import ModuleGenType
@@ -17,7 +18,7 @@ from os.path import join
 
 class CommandLineMultisuite(object):
 
-    def parse_config(self):
+    def parse_config(self, args):
         tmp_root = join(tempfile.gettempdir(), 'mock_app_gen_out')
         log_root = join(tmp_root, 'logs')
 
@@ -48,10 +49,10 @@ class CommandLineMultisuite(object):
         testing.add_argument('--test_build_only', action='store_true', default=False,
                              help="Only builds a small flat build type to create short testing loops."),
 
-        args = parser.parse_args()
-        commandline.AppGenerationConfig.validate_app_gen_options(args)
+        out = parser.parse_args(args)
+        commandline.AppGenerationConfig.validate_app_gen_options(out)
 
-        return args
+        return out
 
     def config_to_vars(self, config):
         self.app_gen_options = commandline.AppGenerationConfig()
@@ -70,11 +71,11 @@ class CommandLineMultisuite(object):
         self.run_xcodebuild = (not config.skip_xcode_build)
         self.test_build_only = config.test_build_only
 
-    def main(self):
+    def main(self, args=sys.argv[1:]):
         logging.basicConfig(
             level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
 
-        args = self.parse_config()
+        args = self.parse_config(args)
         self.config_to_vars(args)
 
         try:
@@ -161,7 +162,7 @@ class CommandLineMultisuite(object):
             end = time.time()
             total_time = int(end-start)
         else:
-            logging.info('Skipping xcodebuild')
+            logging.info('Skipping xcodebuild & buck project')
 
         # Log Results
         build_end = str(datetime.datetime.now())
@@ -176,6 +177,9 @@ class CommandLineMultisuite(object):
         self.build_time_csv_file.flush()
 
     def verify_dependencies(self):
+        if not self.run_xcodebuild:
+            return  # We don't need these binaries if we are not going to use them.
+
         xcode = ['xcodebuild', 'xcode-select']
         local = [self.buck_binary]
         missing = check_dependent_commands(xcode + local)

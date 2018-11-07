@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import itertools
 
 from moduletree import ModuleNode
 from pprint import pprint
@@ -35,8 +36,10 @@ class DotFileReader(object):
         edges = self.clean_edge_names(raw_edges)
         dep_map = self.make_dep_map_from_edges(edges)  # A dep_map is really an outgoing edge map
 
+        # Debug dumps of dot reader state for debugging
         # incoming_map = self.incoming_edge_map_from_dep_map(dep_map)
-        # self.debug_dump([edges, raw_edges],[dep_map,ident_names,incoming_map])
+        # anon_edge = self.anonymize_edge_names(edges, root_node_name)
+        # self.debug_dump([edges, raw_edges, anon_edge],[dep_map,ident_names,incoming_map])
 
         if ident_names:
             logging.error("Found identical buck target names in dot file: %s", path)
@@ -71,15 +74,32 @@ class DotFileReader(object):
         return [[name(part) for part in edge(line)] for line in text.splitlines() if fil(line)]
 
     def extract_buck_target(self, text):
-        "Extracts the target name from a buck target path. Ex: //a/b/c:target -> target"
+        """Extracts the target name from a buck target path. Ex: //a/b/c:target -> target
+        If the target is invalid, just returns the original text."""
         parts = text.split(":")
         if len(parts) != 2:
-            raise ValueError("Unexpected non-buck target string: "+text)
+            return text
         return parts[1]
 
     def clean_edge_names(self, edges):
         "Makes edge names only be their buck target name"
         return [[self.extract_buck_target(text) for text in pair] for pair in edges]
+
+    def anonymize_edge_names(self, edges, main_app_module_name):
+        """Makes edge names anonymous so you can send them to third parties without
+        revealing the names of your modules. """
+
+        # make lib_index an object to avoid a scope quirk of python with inner functions
+        # https://www.codesdope.com/blog/article/nested-function-scope-of-variable-closures-in-pyth/
+        lib_index = itertools.count()
+        name_dict = {main_app_module_name: "DotReaderMainModule"}
+
+        def name(orig):
+            if orig not in name_dict:
+                name_dict[orig] = 'DotReaderLib' + str(lib_index.next())
+            return name_dict[orig]
+
+        return [[name(left), name(right)] for left, right in edges]
 
     def make_dep_map_from_edges(self, edges):
         "Converts a raw [(origin,destination)] edge list into a {origin:[destinations]} outgoing edge map."
@@ -186,12 +206,18 @@ class DotFileReader(object):
                 f.write('"{}" -> "{}";\n'.format(e[0], e[1]))
 
     def debug_dump(self, edges, structs):
-        "Dumps various intermediate objects to files to help debugging"
+        """
+        Dumps various intermediate objects to files to help debugging.
+        `edges` will dump dot files of a list of edge pairs. Type: [[(String,String)]]
+        `structs` will dump a pretty print of python objects. Type: [PythonObject]
+        """
         dump_path = os.path.join(tempfile.gettempdir(), 'ub_dot_graph_dump')
-        print 'Dumping debug structures to', dump_path
+        logging.info('Dumping dotreader.py debug structures to %s', dump_path)
         makedir(dump_path)
 
         for i, edge in enumerate(edges):
-            self.write_edges(edge, '{}edges{}.gv'.format(dump_path, i))
+            path = os.path.join(dump_path, 'edges{}.gv'.format(i))
+            self.write_edges(edge, path)
         for i, struct in enumerate(structs):
-            self.write_struct(struct, '{}struct{}.py'.format(dump_path, i))
+            path = os.path.join(dump_path, 'struct{}.py'.format(i))
+            self.write_struct(struct, path)
