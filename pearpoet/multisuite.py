@@ -192,7 +192,7 @@ class CommandLineMultisuite(object):
 
         if missing:
             logging.error("Missing required binaries: %s", str(missing))
-            raise OSError("Missing required binaries")
+            raise OSError("Missing required binaries: {}".format(missing))
 
     def dump_system_info(self):
         logging.info('Recording device info')
@@ -219,10 +219,8 @@ class CommandLineMultisuite(object):
             self.xcode_paths = {}
             self.xcode_versions = [None]
 
-        self.verify_dependencies()
-
-        makedir(self.log_dir)
-        makedir(self.build_trace_path)
+        for path in [self.log_dir, self.build_trace_path, self.output_dir]:
+            makedir(path)
 
         logging.info('Starting build session')
         self.build_time_file = open(self.build_time_path, 'a')
@@ -236,6 +234,8 @@ class CommandLineMultisuite(object):
 
         self.project_generator = modulegen.BuckProjectGenerator(self.mock_output_dir, self.buck_path)
 
+        self.verify_dependencies()
+
     def multisuite_cleanup(self):
         logging.info("Cleaning up multisuite build test")
         self.settings_state.restore_buckconfig_local()
@@ -243,8 +243,10 @@ class CommandLineMultisuite(object):
         if self.switch_xcode_versions:
             self.settings_state.restore_xcode_select()
 
-        self.build_time_file.close()
-        self.build_time_csv_file.close()
+        if self.build_time_file:
+            self.build_time_file.close()
+        if self.build_time_csv_file:
+            self.build_time_csv_file.close()
         if self.trace_cpu:
             self.cpu_logger.kill()
 

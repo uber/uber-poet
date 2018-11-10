@@ -91,13 +91,8 @@ def del_old_output_dir(output_directory):
 
 
 def make_custom_buckconfig_local(buckconfig_path, build_trace_path):
-    #TODO remove uber specific config, find generic buck versions
     logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
     config = ConfigParser.RawConfigParser()
-    custom_section = 'uber'
-    config.add_section(custom_section)
-    config.set(custom_section, 'xcode_tracing_path', build_trace_path)
-    config.set(custom_section, 'chrome_trace_build_times', 'true')
     config.add_section('project')
     config.set('project', 'ide_force_kill', 'never')
 

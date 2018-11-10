@@ -9,7 +9,7 @@
       "console": "integratedTerminal",
       "args": [
         "--output_directory", "/tmp/genprojtest/mockapp" ,
-        "--buck_module_path", "/genprojtest/mockapp" ,
+        "--buck_module_path", "/mockapp" ,
         "--gen_type", "flat"
       ]
     },
@@ -21,7 +21,7 @@
       "console": "integratedTerminal",
       "args": [
         "--output_directory", "/tmp/genprojtest/mockapp" ,
-        "--buck_module_path", "/genprojtest/mockapp" ,
+        "--buck_module_path", "/mockapp" ,
         "--lines_of_code", "150000",
         "--gen_type", "dot",
         "--dot_file", "${workspaceFolder}/tests/fixtures/test_dot.gv",
@@ -37,7 +37,7 @@
       "args": [
         "--test_build_only",
         "--log_dir", "/tmp/multisuite_build_results",
-        "--app_gen_output_dir", "${workspaceFolder}/../.."
+        "--app_gen_output_dir", "/tmp/multisuite_build_results/app_out"
       ]
     }
   ]
