@@ -127,6 +127,7 @@ class CommandLineMultisuite(object):
             gen_type, wmo_enabled, xcode_version, xcode_build_id)
         logging.info('##### Generating %s', gen_info)
 
+        self.project_generator.use_wmo = wmo_enabled
         commandline.del_old_output_dir(self.mock_output_dir)
 
         logging.info('Generating mock app')
@@ -233,8 +234,7 @@ class CommandLineMultisuite(object):
 
         self.dump_system_info()
 
-        self.project_generator = modulegen.BuckProjectGenerator(
-            self.mock_output_dir, self.buck_path)
+        self.project_generator = modulegen.BuckProjectGenerator(self.mock_output_dir, self.buck_path)
 
     def multisuite_cleanup(self):
         logging.info("Cleaning up multisuite build test")
@@ -271,14 +271,14 @@ class CommandLineMultisuite(object):
         if self.trace_cpu:
             self.cpu_logger.start()
 
+        commandline.make_custom_buckconfig_local(self.buckconfig_path, self.build_trace_path)
+
         for xcode_version in self.xcode_versions:
             if self.switch_xcode_versions:
                 self.switch_xcode_version(xcode_version)
 
             for wmo_enabled in self.wmo_modes:
                 logging.info('Swift WMO Enabled: {}'.format(wmo_enabled))
-                commandline.make_custom_buckconfig_local(
-                    self.buckconfig_path, self.build_trace_path, wmo_enabled)
 
                 for gen_type in self.type_list:
                     self.build_app_type(gen_type, wmo_enabled)

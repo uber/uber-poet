@@ -22,6 +22,8 @@ class GenProjCommandLine(object):
 
         parser.add_argument('-gt', '--gen_type', required=True, choices=ModuleGenType.enum_list(),
                             help='What kind of mock app generation you want.')
+        parser.add_argument('-wmo', '--use_wmo', default=False,
+                            help='Wether or not to use whole module optimization when building swift modules.')
 
         commandline.AppGenerationConfig.add_app_gen_options(parser)
         args = parser.parse_args(args)
@@ -40,7 +42,7 @@ class GenProjCommandLine(object):
         app_node, node_list = commandline.gen_graph(args.gen_type, graph_config)
 
         commandline.del_old_output_dir(args.output_directory)
-        gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path)
+        gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path, use_wmo=args.use_wmo)
 
         logging.info("Generation type: %s", args.gen_type)
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))

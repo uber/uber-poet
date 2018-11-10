@@ -1,12 +1,3 @@
-# xcode_workspace_config(
-#     name = "MockApp",
-#     extra_schemes = {{
-#         {0}
-#     }},
-#     src_target = ":App",
-#     workspace_name = "MockApp",
-# )
-
 apple_bundle(
     name = "App",
     binary = ":AppBinary",
@@ -24,7 +15,21 @@ apple_binary(
         "Foundation",
         "UIKit",
     ],
+    configs = {{
+        "Debug": {{
+            "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{2}",
+        }},
+    }},
     deps = [
         {1}
     ],
 )
+
+# xcode_workspace_config(
+#     name = "MockApp",
+#     extra_schemes = {{
+#         {0}
+#     }},
+#     src_target = ":App",
+#     workspace_name = "MockApp",
+# )
