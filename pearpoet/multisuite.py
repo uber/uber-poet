@@ -127,6 +127,7 @@ class CommandLineMultisuite(object):
             gen_type, wmo_enabled, xcode_version, xcode_build_id)
         logging.info('##### Generating %s', gen_info)
 
+        self.project_generator.use_wmo = wmo_enabled
         commandline.del_old_output_dir(self.mock_output_dir)
 
         logging.info('Generating mock app')
@@ -191,7 +192,7 @@ class CommandLineMultisuite(object):
 
         if missing:
             logging.error("Missing required binaries: %s", str(missing))
-            raise OSError("Missing required binaries")
+            raise OSError("Missing required binaries: {}".format(missing))
 
     def dump_system_info(self):
         logging.info('Recording device info')
@@ -218,10 +219,8 @@ class CommandLineMultisuite(object):
             self.xcode_paths = {}
             self.xcode_versions = [None]
 
-        self.verify_dependencies()
-
-        makedir(self.log_dir)
-        makedir(self.build_trace_path)
+        for path in [self.log_dir, self.build_trace_path, self.output_dir]:
+            makedir(path)
 
         logging.info('Starting build session')
         self.build_time_file = open(self.build_time_path, 'a')
@@ -233,8 +232,9 @@ class CommandLineMultisuite(object):
 
         self.dump_system_info()
 
-        self.project_generator = modulegen.BuckProjectGenerator(
-            self.mock_output_dir, self.buck_path)
+        self.project_generator = modulegen.BuckProjectGenerator(self.mock_output_dir, self.buck_path)
+
+        self.verify_dependencies()
 
     def multisuite_cleanup(self):
         logging.info("Cleaning up multisuite build test")
@@ -243,8 +243,10 @@ class CommandLineMultisuite(object):
         if self.switch_xcode_versions:
             self.settings_state.restore_xcode_select()
 
-        self.build_time_file.close()
-        self.build_time_csv_file.close()
+        if self.build_time_file:
+            self.build_time_file.close()
+        if self.build_time_csv_file:
+            self.build_time_csv_file.close()
         if self.trace_cpu:
             self.cpu_logger.kill()
 
@@ -271,14 +273,14 @@ class CommandLineMultisuite(object):
         if self.trace_cpu:
             self.cpu_logger.start()
 
+        commandline.make_custom_buckconfig_local(self.buckconfig_path, self.build_trace_path)
+
         for xcode_version in self.xcode_versions:
             if self.switch_xcode_versions:
                 self.switch_xcode_version(xcode_version)
 
             for wmo_enabled in self.wmo_modes:
                 logging.info('Swift WMO Enabled: {}'.format(wmo_enabled))
-                commandline.make_custom_buckconfig_local(
-                    self.buckconfig_path, self.build_trace_path, wmo_enabled)
 
                 for gen_type in self.type_list:
                     self.build_app_type(gen_type, wmo_enabled)

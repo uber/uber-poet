@@ -1,4 +1,5 @@
 import shutil
+import logging
 import tempfile
 
 from filegen import SwiftFileGenerator
@@ -12,13 +13,18 @@ class BuckProjectGenerator(object):
     DIR_NAME = dirname(__file__)
     RESOURCE_DIR = join(DIR_NAME, "resources")
 
-    def __init__(self, app_root, buck_app_root):
+    def __init__(self, app_root, buck_app_root, use_wmo=False):
         self.app_root = app_root
         self.buck_app_root = buck_app_root
         self.bzl_lib_template = self.load_resource("mocklibtemplate.bzl")
         self.bzl_app_template = self.load_resource("mockapptemplate.bzl")
         self.swift_gen = SwiftFileGenerator()
+        self.use_wmo = use_wmo
         self.calculate_loc()
+
+    @property
+    def wmo_state(self):
+        return "YES" if self.use_wmo else "NO"
 
     def calculate_loc(self):
         # actual code = lines of code, minus whitespace
@@ -30,6 +36,7 @@ class BuckProjectGenerator(object):
         self.swift_file_size_loc = count_loc(tmp_file_path)
 
         if self.swift_file_size_loc == -1:
+            logging.warning("Using fallback loc calc method due to cloc not being installed.")
             # fallback if cloc is not installed
             # this fallback is based on running cloc on the file made by `self.swift_gen.gen_file(3, 3)`
             # and saving the result of cloc(file_result.text) / file_result.text_line_count to here:
@@ -86,7 +93,7 @@ class BuckProjectGenerator(object):
     def gen_app_buck(self, node, all_nodes):
         module_dep_list = self.make_dep_list([i.name for i in node.deps])
         module_scheme_list = self.make_scheme_list([i.name for i in all_nodes])
-        return self.bzl_app_template.format(module_scheme_list, module_dep_list)
+        return self.bzl_app_template.format(module_scheme_list, module_dep_list, self.wmo_state)
 
     def gen_app_main(self, app_node, module_index):
         importing_module_name = app_node.deps[0].name
@@ -101,7 +108,7 @@ class BuckProjectGenerator(object):
     def gen_lib_module(self, module_node, loc_per_unit):
         # Make BUCK Text
         deps = self.make_dep_list([i.name for i in module_node.deps])
-        buck_text = self.bzl_lib_template.format(module_node.name, deps)
+        buck_text = self.bzl_lib_template.format(module_node.name, deps, self.wmo_state)
 
         # Make Swift Text
         file_count = (loc_per_unit * module_node.code_units) / self.swift_file_size_loc

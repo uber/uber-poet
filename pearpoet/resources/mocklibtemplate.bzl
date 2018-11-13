@@ -11,6 +11,11 @@ apple_library(
     visibility = [
         "PUBLIC",
     ],
+    configs = {{
+        "Debug": {{
+            "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{2}",
+        }},
+    }},
     deps = [
         {1}
     ],

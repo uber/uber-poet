@@ -90,15 +90,9 @@ def del_old_output_dir(output_directory):
         shutil.rmtree(output_directory)
 
 
-def make_custom_buckconfig_local(buckconfig_path, build_trace_path, wmo_enabled):
-    #TODO remove uber specific config, find generic buck versions
+def make_custom_buckconfig_local(buckconfig_path, build_trace_path):
     logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
     config = ConfigParser.RawConfigParser()
-    custom_section = 'uber'
-    config.add_section(custom_section)
-    config.set(custom_section, 'xcode_tracing_path', build_trace_path)
-    config.set(custom_section, 'chrome_trace_build_times', 'true')
-    config.set(custom_section, 'whole_module_optimization', str(wmo_enabled))
     config.add_section('project')
     config.set('project', 'ide_force_kill', 'never')
 
