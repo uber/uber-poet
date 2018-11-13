@@ -2,7 +2,7 @@
 
 ## Description
 
-This python module makes a mock xcode swift app projects with BUCK.  It lets us test different swift module configurations to see how much build speed is affected by different dependency graphs with identical amounts of code.  There are two main command line apps:
+This python module makes mock Xcode swift app projects with BUCK.  It lets us test different swift module configurations to see how much build speed is affected by different dependency graphs with identical amounts of code.  There are two main command line apps:
 
 * `genproj.py` which generates one app which you have to build manually yourself.  Either with BUCK or xcodebuild.
 * `multisuite.py`, which generates all module configs, builds them, records how long they take to build and outputs it's results to a directory passed in the command line

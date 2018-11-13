@@ -1,3 +1,17 @@
+#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import logging
 import subprocess
@@ -23,7 +37,8 @@ class CommandLineMultisuite(object):
         log_root = join(tmp_root, 'logs')
 
         parser = argparse.ArgumentParser(
-            description='Build all mock app types and log times & traces to a log file.')
+            description='Build all mock app types and log times & traces to a log file. '
+            'Useful as a benchmark suite to compare build performance of different computers.')
 
         parser.add_argument('--log_dir', default=log_root,
                             help="Where logs such as build times should exist."),
@@ -45,7 +60,8 @@ class CommandLineMultisuite(object):
 
         testing = parser.add_argument_group('Testing Shortcuts')
         testing.add_argument('--skip_xcode_build', action='store_true', default=False,
-                             help="Skips building the mock apps.  Useful for speeding up testing."),
+                             help="Skips building the mock apps.  Useful for speeding up testing and making "
+                             "integration tests independent of non-python dependencies."),
         testing.add_argument('--test_build_only', action='store_true', default=False,
                              help="Only builds a small flat build type to create short testing loops."),
 
@@ -289,3 +305,9 @@ class CommandLineMultisuite(object):
             self.cpu_logger.stop()
             commandline.apply_cpu_to_traces(
                 self.build_trace_path, self.cpu_logger, start_time)
+
+def main():
+    CommandLineMultisuite().main()
+
+if __name__ == '__main__':
+    main()

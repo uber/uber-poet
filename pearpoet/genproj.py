@@ -1,3 +1,17 @@
+#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import argparse
 import logging
 import time
@@ -5,7 +19,6 @@ import modulegen
 import commandline
 import sys
 from moduletree import ModuleGenType
-
 
 class GenProjCommandLine(object):
 
@@ -21,7 +34,7 @@ class GenProjCommandLine(object):
                             help='The root of the BUCK dependency path of the generated code.')
 
         parser.add_argument('-gt', '--gen_type', required=True, choices=ModuleGenType.enum_list(),
-                            help='What kind of mock app generation you want.')
+                            help='What kind of mock app generation you want.  See layer_types.md for a description of graph types.')
         parser.add_argument('-wmo', '--use_wmo', default=False,
                             help='Wether or not to use whole module optimization when building swift modules.')
 
@@ -51,3 +64,9 @@ class GenProjCommandLine(object):
 
         fin = time.time()
         logging.info("Done in %f s", fin-start)
+
+def main():
+    GenProjCommandLine().main()
+
+if __name__ == '__main__':
+    main()
