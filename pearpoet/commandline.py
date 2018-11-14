@@ -1,19 +1,41 @@
-import shutil
-import os
-import dotreader
-import subprocess
-import logging
+#  Copyright (c) 2018 Uber Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import ConfigParser
 import json
-
-from cpulogger import CPULog
-from moduletree import ModuleNode, ModuleGenType
+import logging
+import os
+import shutil
+import subprocess
 from os.path import join
+
+import dotreader
+from cpulogger import CPULog
+from moduletree import ModuleGenType, ModuleNode
 from util import bool_xor
 
 
 class AppGenerationConfig(object):
-    def __init__(self, module_count=0, big_module_count=0, small_module_count=0, lines_of_code=0, app_layer_count=0, dot_file_path='', dot_root_node_name=''):
+
+    def __init__(self,
+                 module_count=0,
+                 big_module_count=0,
+                 small_module_count=0,
+                 lines_of_code=0,
+                 app_layer_count=0,
+                 dot_file_path='',
+                 dot_root_node_name=''):
         self.module_count = module_count
         self.big_module_count = big_module_count
         self.small_module_count = small_module_count
@@ -35,23 +57,41 @@ class AppGenerationConfig(object):
     @staticmethod
     def add_app_gen_options(parser):
         app = parser.add_argument_group('Mock app generation options')
-        app.add_argument('--module_count', default=100, type=int,
-                         help="How many modules should be in a normal mock app type."),
-        app.add_argument('--big_module_count', default=3, type=int,
-                         help="How many big modules should be in a big/small mock app type."),
-        app.add_argument('--small_module_count', default=50, type=int,
-                         help="How many small modules should be in a big/small mock app type."),
-        app.add_argument('--lines_of_code', default=1500000, type=int,
-                         help="Approximately how many lines of code each mock app should be."),  # 1.5 million lines of code
-        app.add_argument('--app_layer_count', default=10, type=int,
-                         help='How many module layers there should be in the layered mock app type.')
+        app.add_argument(
+            '--module_count', default=100, type=int, help="How many modules should be in a normal mock app type."),
+        app.add_argument(
+            '--big_module_count',
+            default=3,
+            type=int,
+            help="How many big modules should be in a big/small mock app type."),
+        app.add_argument(
+            '--small_module_count',
+            default=50,
+            type=int,
+            help="How many small modules should be in a big/small mock app type."),
+        app.add_argument(
+            '--lines_of_code',
+            default=1500000,
+            type=int,
+            help="Approximately how many lines of code each mock app should be."),  # 1.5 million lines of code
+        app.add_argument(
+            '--app_layer_count',
+            default=10,
+            type=int,
+            help='How many module layers there should be in the layered mock app type.')
 
         dot = parser.add_argument_group('Dot file mock app config')
-        dot.add_argument('--dot_file_path', default='', type=str,
-                         help="The path to the dot file to create a mock module graph from.  This dot file should come "
-                         "from a buck query like so: `buck query \"deps(target)\" --dot > file.gv`.")
-        dot.add_argument('--dot_root_node_name', default='', type=str,
-                         help="The name of the root application node of the dot file, such as 'App'")
+        dot.add_argument(
+            '--dot_file_path',
+            default='',
+            type=str,
+            help="The path to the dot file to create a mock module graph from.  This dot file should come "
+            "from a buck query like so: `buck query \"deps(target)\" --dot > file.gv`.")
+        dot.add_argument(
+            '--dot_root_node_name',
+            default='',
+            type=str,
+            help="The name of the root application node of the dot file, such as 'App'")
 
     @staticmethod
     def validate_app_gen_options(args):
@@ -77,8 +117,8 @@ def gen_graph(gen_type, config):
     else:
         logging.error("Unexpected argument set, aborting.")
         item_list = ', '.join(ModuleGenType.enum_list())
-        logging.error("Choose from ({}) module count: {} dot path: {} ".format(
-            item_list, config.module_count, config.dot_path))
+        logging.error("Choose from ({}) module count: {} dot path: {} ".format(item_list, config.module_count,
+                                                                               config.dot_path))
         raise ValueError("Invalid Arguments")
 
     return app_node, node_list
@@ -95,6 +135,9 @@ def make_custom_buckconfig_local(buckconfig_path, build_trace_path):
     config = ConfigParser.RawConfigParser()
     config.add_section('project')
     config.set('project', 'ide_force_kill', 'never')
+    config.add_section('parser')
+    config.set('parser', 'polyglot_parsing_enabled', 'true')
+    config.set('parser', 'default_build_file_syntax', 'SKYLARK')
 
     with open(buckconfig_path, 'w') as buckconfig:
         config.write(buckconfig)
@@ -128,5 +171,5 @@ def apply_cpu_to_traces(build_trace_path, cpu_logger, time_cutoff=None):
         with open(trace_path, 'r') as trace_file:
             traces = json.load(trace_file)
             new_traces = CPULog.apply_log_to_trace(cpu_logs, traces)
-        with open(trace_path+'.json', 'w') as new_trace_file:
+        with open(trace_path + '.json', 'w') as new_trace_file:
             json.dump(new_traces, new_trace_file)

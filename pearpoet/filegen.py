@@ -1,5 +1,18 @@
-from util import seed
+#  Copyright (c) 2018 Uber Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+from util import seed
 
 swift_func_template = """
 public func complexCrap{0}<T>(arg: Int, stuff:T) -> Int {{
@@ -24,6 +37,7 @@ public class MyClass{0} {{
 
 
 class FileResult(object):
+
     def __init__(self, text, functions, classes):
         super(FileResult, self).__init__()
         self.text = text  # string
@@ -33,6 +47,7 @@ class FileResult(object):
 
 
 class FileGenerator(object):
+
     def gen_file(self, class_count, function_count, line_goal):
         return FileResult("", [], {})
 

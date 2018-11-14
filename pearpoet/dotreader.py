@@ -1,12 +1,26 @@
+#  Copyright (c) 2018 Uber Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import itertools
 import logging
 import os
 import tempfile
-import itertools
+from collections import defaultdict
+from pprint import pprint
 
 from moduletree import ModuleNode
-from pprint import pprint
 from util import makedir
-from collections import defaultdict
 
 # Why filter out modules with these names?
 # We are trying to simulate a non-test app build and ignore non-code targets such as asset
@@ -56,6 +70,7 @@ class DotFileReader(object):
 
         Dot files are basically lines of `"string" -> "string";` that represent a list of edges in a
         graph."""
+
         def edge(line):
             return line[:-1].split('->')
 
@@ -173,6 +188,7 @@ class DotFileReader(object):
         """Converts an outgoing edge map (`dep_map`) into a ModuleNode graph
         that you can generate a mock app from.  You have to provide the
         root node / application node name (`root_node_name`) for the graph. """
+
         def make_mod(name):
             return ModuleNode(name, ModuleNode.LIBRARY)
 

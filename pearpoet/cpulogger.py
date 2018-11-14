@@ -1,8 +1,23 @@
-import subprocess
-import os
-import sys
+#  Copyright (c) 2018 Uber Technologies, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
+import os
+import subprocess
+import sys
 from tempfile import TemporaryFile
+
 
 class CPULog(object):
     "An object representation of a CPU state log"
@@ -18,8 +33,9 @@ class CPULog(object):
 
     def parse_line(self, line):
         "Parses a top CPU log string into data for this object"
+
         def percent_to_num(raw):
-            return float(raw[:-1])*0.01
+            return float(raw[:-1]) * 0.01
 
         line = str(line)
         items = line.split(" ")
@@ -33,8 +49,17 @@ class CPULog(object):
 
     def chrome_trace(self):
         "Returns the chrome trace json representation of the the object"
-        return {"name": "cpu", "ph": "C", "pid": 1, "ts": self.chrome_epoch, "args":
-                {"user": self.user, "sys": self.sys, "idle": self.idle}}
+        return {
+            "name": "cpu",
+            "ph": "C",
+            "pid": 1,
+            "ts": self.chrome_epoch,
+            "args": {
+                "user": self.user,
+                "sys": self.sys,
+                "idle": self.idle
+            }
+        }
 
     @property
     def chrome_epoch(self):
@@ -63,9 +88,9 @@ class CPULog(object):
     def apply_log_to_trace(log_list, traces):
         "Adds CPU items to a chrome trace"
         min_ts, max_ts = CPULog.find_timestamp_range(traces)
-        traces_in_range = [i.chrome_trace() for i in log_list
-                           if i.chrome_epoch_in_range(min_ts, max_ts)]
+        traces_in_range = [i.chrome_trace() for i in log_list if i.chrome_epoch_in_range(min_ts, max_ts)]
         return traces + traces_in_range
+
 
 # TODO Use psutil instead of top?
 class CPULogger(object):
@@ -83,7 +108,7 @@ class CPULogger(object):
         """Starts the CPU logger"""
         self.stop()
         logging.warning('You will probably have to call `sudo killall top` to'
-        ' kill the CPU monitor after this python script finishes execution.')
+                        ' kill the CPU monitor after this python script finishes execution.')
         script_path = os.path.join(os.path.dirname(__file__), "resources", "cpu_log.sh")
         self.process = subprocess.Popen([script_path], stdout=self.output)
 
