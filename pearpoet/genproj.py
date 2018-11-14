@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,13 @@
 
 import argparse
 import logging
-import time
-import modulegen
-import commandline
 import sys
+import time
+
+import commandline
+import modulegen
 from moduletree import ModuleGenType
+
 
 class GenProjCommandLine(object):
 
@@ -28,15 +30,24 @@ class GenProjCommandLine(object):
 
         parser = argparse.ArgumentParser(description=arg_desc)
 
-        parser.add_argument('-o', '--output_directory', required=True,
-                            help='Where the mock project should be output.')
-        parser.add_argument('-bmp', '--buck_module_path', required=True,
-                            help='The root of the BUCK dependency path of the generated code.')
+        parser.add_argument('-o', '--output_directory', required=True, help='Where the mock project should be output.')
+        parser.add_argument(
+            '-bmp',
+            '--buck_module_path',
+            required=True,
+            help='The root of the BUCK dependency path of the generated code.')
 
-        parser.add_argument('-gt', '--gen_type', required=True, choices=ModuleGenType.enum_list(),
-                            help='What kind of mock app generation you want.  See layer_types.md for a description of graph types.')
-        parser.add_argument('-wmo', '--use_wmo', default=False,
-                            help='Wether or not to use whole module optimization when building swift modules.')
+        parser.add_argument(
+            '-gt',
+            '--gen_type',
+            required=True,
+            choices=ModuleGenType.enum_list(),
+            help='What kind of mock app generation you want.  See layer_types.md for a description of graph types.')
+        parser.add_argument(
+            '-wmo',
+            '--use_wmo',
+            default=False,
+            help='Wether or not to use whole module optimization when building swift modules.')
 
         commandline.AppGenerationConfig.add_app_gen_options(parser)
         args = parser.parse_args(args)
@@ -59,14 +70,17 @@ class GenProjCommandLine(object):
 
         logging.info("Generation type: %s", args.gen_type)
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
-        logging.info("Example command to generate xcode workspace: $ buck project /{}/App:MockApp".format(args.buck_module_path))
+        logging.info("Example command to generate xcode workspace: $ buck project /{}/App:MockApp".format(
+            args.buck_module_path))
         gen.gen_app(app_node, node_list, graph_config.lines_of_code)
 
         fin = time.time()
-        logging.info("Done in %f s", fin-start)
+        logging.info("Done in %f s", fin - start)
+
 
 def main():
     GenProjCommandLine().main()
+
 
 if __name__ == '__main__':
     main()

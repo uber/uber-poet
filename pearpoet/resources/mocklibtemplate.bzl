@@ -1,4 +1,7 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+# BUILD FILE SYNTAX: SKYLARK
+# More Info: https://buckbuild.com/concept/skylark.html
+
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

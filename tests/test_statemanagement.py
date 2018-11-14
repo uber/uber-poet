@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,14 @@
 # limitations under the License.
 
 import unittest
+
 from pearpoet.statemanagement import XcodeVersion
 
 
 class TestXcode(unittest.TestCase):
+
     def test_choose_latest_major_versions_one_version(self):
-        data = {
-            ('9.4.3', 'ASDF'): '/Applications/Xcode.9.4.3.app',
-            ('10.0', 'QWERT'): '/Applications/Xcode-beta.app'
-        }
+        data = {('9.4.3', 'ASDF'): '/Applications/Xcode.9.4.3.app', ('10.0', 'QWERT'): '/Applications/Xcode-beta.app'}
 
         data2 = XcodeVersion.choose_latest_major_versions(data)
 

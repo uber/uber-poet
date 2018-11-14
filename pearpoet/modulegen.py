@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import shutil
 import logging
+import shutil
 import tempfile
+from os.path import dirname, join
 
-from filegen import SwiftFileGenerator
-from util import first_in_dict, first_key, makedir
-from moduletree import ModuleNode
-from os.path import join, dirname
 from commandline import count_loc
+from filegen import SwiftFileGenerator
+from moduletree import ModuleNode
+from util import first_in_dict, first_key, makedir
 
 
 class BuckProjectGenerator(object):
@@ -77,7 +77,8 @@ class BuckProjectGenerator(object):
         return self.make_list_str(["'/{0}/{1}:{1}'".format(self.buck_app_root, i) for i in items])
 
     def make_scheme_list(self, items):
-        return self.make_list_str(["{2: <20} :'/{0}/{1}:{1}Scheme'".format(self.buck_app_root, i, "'{}'".format(i)) for i in items])
+        return self.make_list_str(
+            ["{2: <20} :'/{0}/{1}:{1}Scheme'".format(self.buck_app_root, i, "'{}'".format(i)) for i in items])
 
     # Generation Functions
 

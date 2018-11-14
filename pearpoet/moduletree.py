@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import random
+
 from util import merge_lists
 
 
@@ -32,7 +33,6 @@ class ModuleGenType(object):
             ModuleGenType.bs_layered,
             ModuleGenType.dot,
         ]
-
 
 
 class ModuleNode(object):
@@ -72,6 +72,7 @@ class ModuleNode(object):
 
         def node(layer, node):
             return ModuleNode('MockLib{}_{}'.format(layer, node), ModuleNode.LIBRARY)
+
         layers = [[node(l, n) for n in xrange(nodes_per_layer)] for l in xrange(layer_count)]
         all_nodes = merge_lists(layers)
         app_node = ModuleNode('App', ModuleNode.APP, layers[0])
@@ -113,8 +114,8 @@ class ModuleNode(object):
         app_node = ModuleNode('App', ModuleNode.APP, big_libs)
 
         layer_count = 3
-        layer_mod_count = small_mod_count/layer_count
-        deps_per_layer = layer_count/2 if layer_count >= 2 else 1
+        layer_mod_count = small_mod_count / layer_count
+        deps_per_layer = layer_count / 2 if layer_count >= 2 else 1
 
         layer_app_node, layer_nodes = ModuleNode.gen_layered_graph(layer_count, layer_mod_count, deps_per_layer)
         layer_nodes = [layer_item for layer_item in layer_nodes if layer_item != layer_app_node]

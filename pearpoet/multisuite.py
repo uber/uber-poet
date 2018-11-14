@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,21 +13,21 @@
 # limitations under the License.
 
 import argparse
-import logging
-import subprocess
-import time
 import datetime
-import modulegen
+import logging
 import shutil
-import commandline
-import tempfile
+import subprocess
 import sys
+import tempfile
+import time
+from os.path import join
 
+import commandline
+import modulegen
 from cpulogger import CPULogger
 from moduletree import ModuleGenType
-from statemanagement import XcodeManager, SettingsState
-from util import makedir, sudo_enabled, check_dependent_commands, grab_mac_marketing_name
-from os.path import join
+from statemanagement import SettingsState, XcodeManager
+from util import check_dependent_commands, grab_mac_marketing_name, makedir, sudo_enabled
 
 
 class CommandLineMultisuite(object):
@@ -40,30 +40,41 @@ class CommandLineMultisuite(object):
             description='Build all mock app types and log times & traces to a log file. '
             'Useful as a benchmark suite to compare build performance of different computers.')
 
-        parser.add_argument('--log_dir', default=log_root,
-                            help="Where logs such as build times should exist."),
-        parser.add_argument('--app_gen_output_dir', default=tmp_root,
-                            help="Where generated mock apps should be outputted to."),
-        parser.add_argument('--buck_command', default='buck',
-                            help="The path to the buck binary.  Defaults to `buck`."),
+        parser.add_argument('--log_dir', default=log_root, help="Where logs such as build times should exist."),
+        parser.add_argument(
+            '--app_gen_output_dir', default=tmp_root, help="Where generated mock apps should be outputted to."),
+        parser.add_argument('--buck_command', default='buck', help="The path to the buck binary.  Defaults to `buck`."),
 
         commandline.AppGenerationConfig.add_app_gen_options(parser)
 
         actions = parser.add_argument_group('Extra Actions')
-        actions.add_argument('--trace_cpu', action='store_true', default=False,
-                             help="If we should add cpu utilization to build traces."),
-        actions.add_argument('--switch_xcode_versions', action='store_true', default=False,
-                             help="Switch xcode verions as part of the full multisuite test. This will search your "
-                             "`/Applications` directory for xcode.app bundles to build with. Requires sudo."),
-        actions.add_argument('--full_clean', action='store_true', default=False,
-                             help="Clean all default xcode cache directories to prevent cache effects changing test results."),
+        actions.add_argument(
+            '--trace_cpu', action='store_true', default=False,
+            help="If we should add cpu utilization to build traces."),
+        actions.add_argument(
+            '--switch_xcode_versions',
+            action='store_true',
+            default=False,
+            help="Switch xcode verions as part of the full multisuite test. This will search your "
+            "`/Applications` directory for xcode.app bundles to build with. Requires sudo."),
+        actions.add_argument(
+            '--full_clean',
+            action='store_true',
+            default=False,
+            help="Clean all default xcode cache directories to prevent cache effects changing test results."),
 
         testing = parser.add_argument_group('Testing Shortcuts')
-        testing.add_argument('--skip_xcode_build', action='store_true', default=False,
-                             help="Skips building the mock apps.  Useful for speeding up testing and making "
-                             "integration tests independent of non-python dependencies."),
-        testing.add_argument('--test_build_only', action='store_true', default=False,
-                             help="Only builds a small flat build type to create short testing loops."),
+        testing.add_argument(
+            '--skip_xcode_build',
+            action='store_true',
+            default=False,
+            help="Skips building the mock apps.  Useful for speeding up testing and making "
+            "integration tests independent of non-python dependencies."),
+        testing.add_argument(
+            '--test_build_only',
+            action='store_true',
+            default=False,
+            help="Only builds a small flat build type to create short testing loops."),
 
         out = parser.parse_args(args)
         commandline.AppGenerationConfig.validate_app_gen_options(out)
@@ -88,8 +99,7 @@ class CommandLineMultisuite(object):
         self.test_build_only = config.test_build_only
 
     def main(self, args=sys.argv[1:]):
-        logging.basicConfig(
-            level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
 
         args = self.parse_config(args)
         self.config_to_vars(args)
@@ -129,18 +139,17 @@ class CommandLineMultisuite(object):
             self.wmo_modes = [True, False]
             self.type_list = ModuleGenType.enum_list()
             if not has_dot:
-                logging.warning(
-                    "Removing dot mock app type due to lack of dot file to read. Specify one in the command line options.")
+                logging.warning("Removing dot mock app type due to lack of dot file to read. "
+                                "Specify one in the command line options.")
                 self.type_list.remove(ModuleGenType.dot)
 
     def build_app_type(self, gen_type, wmo_enabled):
         xcode_version, xcode_build_id = XcodeManager.get_current_xcode_version()
         xcode_name = '{}_'.format(xcode_version.replace('.', '_'))
-        build_log_path = join(
-            self.log_dir, '{}{}_mockapp_build_log.txt'.format(xcode_name, gen_type))
+        build_log_path = join(self.log_dir, '{}{}_mockapp_build_log.txt'.format(xcode_name, gen_type))
 
-        gen_info = '{} (wmo_enabled: {}, xcode_version: {} {})'.format(
-            gen_type, wmo_enabled, xcode_version, xcode_build_id)
+        gen_info = '{} (wmo_enabled: {}, xcode_version: {} {})'.format(gen_type, wmo_enabled, xcode_version,
+                                                                       xcode_build_id)
         logging.info('##### Generating %s', gen_info)
 
         self.project_generator.use_wmo = wmo_enabled
@@ -162,29 +171,27 @@ class CommandLineMultisuite(object):
             shutil.rmtree(derived_data_path, ignore_errors=True)
             makedir(derived_data_path)
 
-            subprocess.check_call(
-                [self.buck_binary, 'project', self.app_buck_path, '-d'])
+            subprocess.check_call([self.buck_binary, 'project', self.app_buck_path, '-d'])
             if self.full_clean:
                 self.xcode_manager.clean_caches()
 
             logging.info('Start xcodebuild')
             start = time.time()
             with open(build_log_path, 'w') as build_log_file:
-                subprocess.check_call(['xcodebuild', 'build',
-                                       '-scheme', 'MockApp',
-                                       '-sdk', 'iphonesimulator',
-                                       '-workspace', self.mock_app_workspace,
-                                       '-derivedDataPath', derived_data_path],
-                                      stdout=build_log_file, stderr=build_log_file)
+                subprocess.check_call([
+                    'xcodebuild', 'build', '-scheme', 'MockApp', '-sdk', 'iphonesimulator', '-workspace',
+                    self.mock_app_workspace, '-derivedDataPath', derived_data_path
+                ],
+                                      stdout=build_log_file,
+                                      stderr=build_log_file)
             end = time.time()
-            total_time = int(end-start)
+            total_time = int(end - start)
         else:
             logging.info('Skipping xcodebuild & buck project')
 
         # Log Results
         build_end = str(datetime.datetime.now())
-        log_statement = '{} w/ {} (loc: {}) modules took {} s\n'.format(
-            gen_info, len(node_list), swift_loc, total_time)
+        log_statement = '{} w/ {} (loc: {}) modules took {} s\n'.format(gen_info, len(node_list), swift_loc, total_time)
         logging.info(log_statement)
         self.build_time_file.write(log_statement)
         self.build_time_file.flush()
@@ -216,8 +223,7 @@ class CommandLineMultisuite(object):
             info_file.write(grab_mac_marketing_name())
             info_file.write('\n')
             info_file.flush()
-            subprocess.check_call(
-                ['system_profiler', 'SPHardwareDataType', '-detailLevel', 'mini'], stdout=info_file)
+            subprocess.check_call(['system_profiler', 'SPHardwareDataType', '-detailLevel', 'mini'], stdout=info_file)
             subprocess.check_call(['sw_vers'], stdout=info_file)
 
     def multisuite_setup(self):
@@ -229,8 +235,7 @@ class CommandLineMultisuite(object):
             self.sudo_warning()
             self.xcode_paths = self.xcode_manager.discover_xcode_versions()
             self.xcode_versions = self.xcode_paths.keys()
-            logging.info("Discovered xcode verions: %s",
-                         str(self.xcode_versions))
+            logging.info("Discovered xcode verions: %s", str(self.xcode_versions))
         else:
             self.xcode_paths = {}
             self.xcode_versions = [None]
@@ -268,19 +273,14 @@ class CommandLineMultisuite(object):
 
     def sudo_warning(self):
         if not sudo_enabled():
-            logging.warning(
-                'I would suggest executing this in a bash script and adding a sudo keep alive so you')
-            logging.warning(
-                'can run this fully unattended: https://gist.github.com/cowboy/3118588')
-            logging.warning(
-                "If you don't, then half way through the build suite, it will stall asking for a password.")
-            logging.warning(
-                "I don't know how to make xcode-select -s not require sudo unfortunately.")
+            logging.warning('I would suggest executing this in a bash script and adding a sudo keep alive so you')
+            logging.warning('can run this fully unattended: https://gist.github.com/cowboy/3118588')
+            logging.warning("If you don't, then half way through the build suite, it will stall asking for a password.")
+            logging.warning("I don't know how to make xcode-select -s not require sudo unfortunately.")
 
     def switch_xcode_version(self, xcode_version):
         logging.warning('Switching to xcode version %s', str(xcode_version))
-        self.xcode_manager.switch_xcode_version(
-            self.xcode_paths[xcode_version])
+        self.xcode_manager.switch_xcode_version(self.xcode_paths[xcode_version])
 
     def run_multisuite(self):
         self.multisuite_setup()
@@ -303,11 +303,12 @@ class CommandLineMultisuite(object):
 
         if self.trace_cpu:
             self.cpu_logger.stop()
-            commandline.apply_cpu_to_traces(
-                self.build_trace_path, self.cpu_logger, start_time)
+            commandline.apply_cpu_to_traces(self.build_trace_path, self.cpu_logger, start_time)
+
 
 def main():
     CommandLineMultisuite().main()
+
 
 if __name__ == '__main__':
     main()

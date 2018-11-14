@@ -49,3 +49,8 @@ See `./genproj.py -h` or `./mulisuite.py -h` for general help.  Also take a look
       * Research more possibilities
   * Import apple libraries, use them.
   * Import third party libraries from the cocoapods repo, use them some how.
+
+* Add more project config support:
+  * Add swift project manager project descripition support to remove buck dependency.
+  * Test / add bazel support to see if there is any difference between buck or bazel
+  * (relatively a more work) add direct xcode project & workspace direction

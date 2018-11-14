@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from util import seed
-
 
 swift_func_template = """
 public func complexCrap{0}<T>(arg: Int, stuff:T) -> Int {{
@@ -38,6 +37,7 @@ public class MyClass{0} {{
 
 
 class FileResult(object):
+
     def __init__(self, text, functions, classes):
         super(FileResult, self).__init__()
         self.text = text  # string
@@ -47,6 +47,7 @@ class FileResult(object):
 
 
 class FileGenerator(object):
+
     def gen_file(self, class_count, function_count, line_goal):
         return FileResult("", [], {})
 

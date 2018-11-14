@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import os
-import logging
-import shutil
-import sys
 import getpass
-
+import logging
+import os
+import shutil
+import subprocess
+import sys
 from os.path import join
+
 from util import pad_list
 
 
 class SettingsState(object):
+
     def __init__(self, git_root):
         self.git_root = git_root
         self.have_backed_up = False
@@ -62,8 +63,7 @@ class XcodeManager(object):
 
     def get_xcode_dirs(self, containing_dir='/Applications'):
         items = os.listdir(containing_dir)
-        return [join(containing_dir, d) for d in items
-                if 'xcode' in d.lower() and d.endswith('app')]
+        return [join(containing_dir, d) for d in items if 'xcode' in d.lower() and d.endswith('app')]
 
     @staticmethod
     def get_current_xcode_version():
@@ -148,8 +148,7 @@ class XcodeVersion(object):
         """This selects the latest version for each major version of xcode in a set of xcode paths.
         raw_versions is a {(version_str, build_str): xcode_path_str} dictionary. """
 
-        versions = {XcodeVersion(raw_version, build): path
-                    for (raw_version, build), path in raw_versions.iteritems()}
+        versions = {XcodeVersion(raw_version, build): path for (raw_version, build), path in raw_versions.iteritems()}
 
         major_seperated = {}
         for version, path in versions.iteritems():

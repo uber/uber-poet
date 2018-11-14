@@ -1,4 +1,4 @@
-#  Copyright (c) 2017-2018 Uber Technologies, Inc.
+#  Copyright (c) 2018 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,11 +13,13 @@
 # limitations under the License.
 
 import unittest
+
 from pearpoet.moduletree import ModuleNode
 
 
 class TestModuleTree(unittest.TestCase):
+
     def test_gen_layered_graph(self):
         root, nodes = ModuleNode.gen_layered_graph(10, 10)
-        self.assertEqual(len(nodes), 10*10 + 1)
+        self.assertEqual(len(nodes), 10 * 10 + 1)
         self.assertEqual(ModuleNode.APP, root.node_type)
