@@ -174,7 +174,7 @@ class XcodeVersion(object):
         return False
 
     def __gt__(self, b):
-        if self == b:
+        if self.version == b.version:
             if self.build > b.build:
                 return True
             return False
