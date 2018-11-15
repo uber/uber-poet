@@ -16,36 +16,58 @@ import os
 import tempfile
 import unittest
 
+from os.path import join
 from pearpoet.genproj import GenProjCommandLine
 from pearpoet.multisuite import CommandLineMultisuite
-
-
-def integration_test(func):
-
-    def do_nothing(arg):
-        pass
-
-    if 'INTEGRATION' in os.environ:
-        return func
-    else:
-        return do_nothing
-
+from . import integration_test
 
 class TestIntegration(unittest.TestCase):
 
+    def verify_genproj(self, lib_name, mod_count, app_path):
+        main_path = join(app_path, 'App')
+        lib_path = join(app_path, lib_name, 'Sources')
+
+        # Top level dir
+        contents = os.listdir(app_path)
+        self.assertGreater(len(contents), 0)
+        self.assertEqual(len(contents), mod_count)
+
+        # App dir
+        self.assertIn('App', contents)
+        app_contents = os.listdir(main_path)
+        self.assertGreater(len(app_contents), 0)
+        for file_name in ['BUCK', 'main.swift', 'Info.plist']:
+            self.assertIn(file_name, app_contents)
+            with open(join(main_path, file_name), 'r') as f:
+                self.assertGreater(len(f.read()), 0)
+                #TODO actually verify generated code?
+
+        # Lib dir
+        self.assertIn(lib_name, contents)
+        lib_contents = os.listdir(lib_path)
+        self.assertGreater(len(lib_contents), 0)
+        self.assertIn('File0.swift', lib_contents)
+        with open(join(lib_path, 'File0.swift'), 'r') as f:
+            self.assertGreater(len(f.read()), 0)
+            #TODO actually verify generated code?
+
     @integration_test
     def test_flat_genproj(self):
-        app_path = os.path.join(tempfile.gettempdir(), 'apps', 'mockapp')
+        app_path = join(tempfile.gettempdir(), 'apps', 'mockapp')
         args = [
             "--output_directory", app_path, "--buck_module_path", "/apps/mockapp", "--gen_type", "flat",
             "--lines_of_code", "150000"
         ]
         command = GenProjCommandLine()
         command.main(args)
-        self.assertGreater(os.listdir(app_path), 0)
+
+        self.verify_genproj('MockLib53', 101, app_path)
+
 
     @integration_test
     def test_dot_genproj(self):
+        app_path = join(tempfile.gettempdir(), 'apps', 'mockapp')
+
         test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_dot.gv')
         app_path = os.path.join(tempfile.gettempdir(), 'apps', 'mockapp')
         args = [
@@ -54,36 +76,51 @@ class TestIntegration(unittest.TestCase):
         ]
         command = GenProjCommandLine()
         command.main(args)
-        self.assertGreater(os.listdir(app_path), 0)
+
+        self.verify_genproj('DotReaderLib17', 338, app_path)
+
 
     @integration_test
     def test_flat_multisuite(self):
-        app_path = os.path.join(tempfile.gettempdir(), 'apps', 'mockapp')
-        args = ["--log_dir", app_path, "--app_gen_output_dir", app_path, "--test_build_only", "--skip_xcode_build"]
+        root_path = join(tempfile.gettempdir(), 'multisuite_test')
+        app_path = join(root_path, 'apps', 'mockapp')
+        log_path = join(root_path, 'logs')
+        args = ["--log_dir", log_path, "--app_gen_output_dir", root_path, "--test_build_only", "--skip_xcode_build"]
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
+        self.verify_genproj('MockLib53', 101, app_path)
 
     @integration_test
     def test_dot_multisuite(self):
         test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_dot.gv')
-        app_path = os.path.join(tempfile.gettempdir(), 'apps', 'mockapp')
+        root_path = join(tempfile.gettempdir(), 'multisuite_test')
+        app_path = join(root_path, 'apps', 'mockapp')
+        log_path = join(root_path, 'logs')
         args = [
-            "--log_dir", app_path, "--app_gen_output_dir", app_path, "--dot_file", test_fixture_path, "--dot_root",
+            "--log_dir", log_path, "--app_gen_output_dir", root_path, "--dot_file", test_fixture_path, "--dot_root",
             "DotReaderMainModule", "--skip_xcode_build", "--test_build_only"
         ]
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
+        self.verify_genproj('DotReaderLib17', 338, app_path)
 
     @integration_test
     def test_all_multisuite(self):
         test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_dot.gv')
-        app_path = os.path.join(tempfile.gettempdir(), 'apps', 'mockapp')
+        root_path = join(tempfile.gettempdir(), 'multisuite_test')
+        app_path = join(root_path, 'apps', 'mockapp')
+        log_path = join(root_path, 'logs')
         args = [
-            "--log_dir", app_path, "--app_gen_output_dir", app_path, "--dot_file", test_fixture_path, "--dot_root",
+            "--log_dir", log_path, "--app_gen_output_dir", root_path, "--dot_file", test_fixture_path, "--dot_root",
             "DotReaderMainModule", "--skip_xcode_build", "--lines_of_code", "150000"
         ]
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
+
+        # Note we are assuming that the last project to be generated is the dot project.
+        # If you change the order of project generation, make this match whatever is the new 'last project'
+        # It's a bit fragile, but it's better than not verifying anything currently
+        self.verify_genproj('DotReaderLib17', 338, app_path)
