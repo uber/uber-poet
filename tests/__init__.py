@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import os
 
 def do_nothing(arg):
@@ -22,3 +23,11 @@ def integration_test(func):
         return func
     else:
         return do_nothing
+
+def read_file(path):
+    with open(path, 'r') as f:
+        return f.read()
+
+def write_file(path, text):
+    with open(path, 'w') as f:
+        f.write(text)
