@@ -12,10 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import os
+
+def do_nothing(arg):
+    pass
+
+def integration_test(func):
+    if 'INTEGRATION' in os.environ:
+        return func
+    else:
+        return do_nothing
+
 def read_file(path):
     with open(path, 'r') as f:
         return f.read()
 
 def write_file(path, text):
     with open(path, 'w') as f:
-        return f.write(text)
+        f.write(text)

@@ -71,9 +71,9 @@ class AppGenerationConfig(object):
             help="How many small modules should be in a big/small mock app type."),
         app.add_argument(
             '--lines_of_code',
-            default=1500000,
+            default=1500000,  # 1.5 million lines of code
             type=int,
-            help="Approximately how many lines of code each mock app should be."),  # 1.5 million lines of code
+            help="Approximately how many lines of code each mock app should be."),
         app.add_argument(
             '--app_layer_count',
             default=10,
@@ -102,16 +102,17 @@ class AppGenerationConfig(object):
 
 def gen_graph(gen_type, config):
     app_node, node_list = None, None
+    modules_per_layer = config.module_count / config.app_layer_count
 
     if gen_type == ModuleGenType.flat:
         app_node, node_list = ModuleNode.gen_flat_graph(config.module_count)
     elif gen_type == ModuleGenType.bs_flat:
-        app_node, node_list = ModuleNode.gen_flat_big_small_graph(config.big_modules, config.module_count)
+        app_node, node_list = ModuleNode.gen_flat_big_small_graph(config.big_module_count, config.small_module_count)
     elif gen_type == ModuleGenType.layered:
-        app_node, node_list = ModuleNode.gen_layered_graph(config.layer_count, config.module_count / config.layer_count)
+        app_node, node_list = ModuleNode.gen_layered_graph(config.app_layer_count, modules_per_layer)
     elif gen_type == ModuleGenType.bs_layered:
-        app_node, node_list = ModuleNode.gen_layered_big_small_graph(config.big_modules, config.module_count)
-    elif config.dot_file_path and config.dot_root_node_name and gen_type == ModuleGenType.dot:
+        app_node, node_list = ModuleNode.gen_layered_big_small_graph(config.big_module_count, config.small_module_count)
+    elif gen_type == ModuleGenType.dot and config.dot_file_path and config.dot_root_node_name:
         logging.info("Reading dot file: %s", config.dot_file_path)
         app_node, node_list = dotreader.DotFileReader().read_dot_file(config.dot_file_path, config.dot_root_node_name)
     else:
