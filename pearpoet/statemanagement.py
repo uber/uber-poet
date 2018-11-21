@@ -164,7 +164,7 @@ class XcodeVersion(object):
         return out
 
     def __repr__(self):
-        return 'XcodeVersion({},{})'.format(self.raw_version, self.build)
+        return "XcodeVersion('{}','{}')".format(self.raw_version, self.build)
 
     def __eq__(self, b):
         if not (tuple(self.version) == tuple(b.version)):
