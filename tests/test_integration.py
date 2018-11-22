@@ -15,11 +15,14 @@
 import os
 import tempfile
 import unittest
+import testfixtures.popen
+import mock
 
+from testfixtures.popen import PopenBehaviour, MockPopen
 from os.path import join
 from pearpoet.genproj import GenProjCommandLine
 from pearpoet.multisuite import CommandLineMultisuite
-from . import integration_test
+from . import integration_test, read_file
 
 class TestIntegration(unittest.TestCase):
 
@@ -90,6 +93,34 @@ class TestIntegration(unittest.TestCase):
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
         self.verify_genproj('MockLib53', 101, app_path)
+
+    @integration_test
+    def test_flat_multisuite_mocking_calls(self):
+        test_cloc_out_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'cloc_out.json')
+        cloc_out = read_file(test_cloc_out_path)
+        root_path = join(tempfile.gettempdir(), 'multisuite_test')
+        app_path = join(root_path, 'apps', 'mockapp')
+        log_path = join(root_path, 'logs')
+        args = ["--log_dir", log_path, "--app_gen_output_dir", root_path, "--test_build_only", "--switch_xcode_versions","--full_clean"]
+
+        def command_callable(command, stdin):
+            if 'cloc' in command:
+                return PopenBehaviour(stdout=cloc_out)
+            elif 'xcodebuild -version' in command:
+                return PopenBehaviour(stdout=b'Xcode 10.0\nBuild version 10A255\n')
+            return PopenBehaviour(stdout=b'test_out', stderr=b'test_error')
+
+        with testfixtures.Replacer() as rep:
+            mock_popen = MockPopen()
+            rep.replace('subprocess.Popen', mock_popen)
+            mock_popen.set_default(behaviour=command_callable)
+
+            with mock.patch('distutils.spawn.find_executable') as mock_find:
+                mock_find.return_value = '/bin/ls' # A non empty return value basically means "I found that executable"
+                CommandLineMultisuite().main(args)
+                self.assertGreater(os.listdir(app_path), 0)
+                self.verify_genproj('MockLib53', 101, app_path)
+
 
     @integration_test
     def test_dot_multisuite(self):

@@ -39,7 +39,7 @@ class DotFileReader(object):
     really slow.  Probably because of some extra stuff we don't do.
     """
 
-    def read_dot_file(self, path, root_node_name):
+    def read_dot_file(self, path, root_node_name, is_debug=False):
         """Reads a BUCK dependency dump in a dot/gv file at `path` and returns a `ModuleNode`
         graph root and list of nodes to generate a mock app from it."""
         with open(path, 'r') as f:
@@ -51,9 +51,10 @@ class DotFileReader(object):
         dep_map = self.make_dep_map_from_edges(edges)  # A dep_map is really an outgoing edge map
 
         # Debug dumps of dot reader state for debugging
-        # incoming_map = self.incoming_edge_map_from_dep_map(dep_map)
-        # anon_edge = self.anonymize_edge_names(edges, root_node_name)
-        # self.debug_dump([edges, raw_edges, anon_edge],[dep_map,ident_names,incoming_map])
+        if is_debug:
+            incoming_map = self.incoming_edge_map_from_dep_map(dep_map)
+            anon_edge = self.anonymize_edge_names(edges, root_node_name)
+            self.debug_dump([edges, raw_edges, anon_edge],[dep_map,ident_names,incoming_map])
 
         if ident_names:
             logging.error("Found identical buck target names in dot file: %s", path)
@@ -139,7 +140,11 @@ class DotFileReader(object):
         return dict(incoming)
 
     def reachability_set(self, dep_map, root_node_name):
-        "Returns a set of all nodes reachable from root_node_name"
+        """
+        WARNING: Doesn't work currently.  It's a TODO to fix this.
+
+        Returns a set of all nodes reachable from root_node_name
+        """
         seen = set()
         consume_list = [root_node_name]
         while len(consume_list) > 0:
@@ -167,9 +172,11 @@ class DotFileReader(object):
         name_count = {key: value for key, value in name_count.iteritems() if value > 1}
         return name_count
 
-    def biggest_root(self, dep_map):
-        """Finds the root with the most reachable nodes under it inside a DAG.
-        The biggest root is probably the app tree."""
+    def biggest_root_name(self, dep_map):
+        """
+        WARNING: Doesn't work currently.  It's a TODO to fix this.
+        Finds the root with the most reachable nodes under it inside a DAG.
+        The biggest root is probably the app tree.  """
         roots = self.find_roots_in_dep_map(dep_map)
         root_name = None
         if len(roots) == 1:
@@ -195,6 +202,7 @@ class DotFileReader(object):
         mod_map = {name: make_mod(name) for name in dep_map.keys()}
         # TODO fix mod_map[self.biggest_root(dep_map)].  If this works you don't
         # have to pass the app node name any more.
+        # app_node = mod_map[self.biggest_root_name(dep_map)]
         app_node = mod_map[root_node_name]
         app_node.node_type = ModuleNode.APP
 

@@ -1,0 +1,18 @@
+{"header" : {
+  "cloc_url"           : "github.com/AlDanial/cloc",
+  "cloc_version"       : "1.78",
+  "elapsed_seconds"    : 1.01171088218689,
+  "n_files"            : 1,
+  "n_lines"            : 160,
+  "files_per_second"   : 0.988424675079529,
+  "lines_per_second"   : 158.147948012725},
+"Swift" :{
+  "nFiles": 1,
+  "blank": 28,
+  "comment": 0,
+  "code": 132},
+"SUM": {
+  "blank": 28,
+  "comment": 0,
+  "code": 132,
+  "nFiles": 1} }
