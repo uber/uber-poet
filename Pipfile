@@ -9,8 +9,10 @@ name = "pypi"
 mock = "==2.0.0"
 testfixtures = "==6.3.0"
 pytest = "==4.0.0"
-pylint = "<2.0.0"
 pytest-cov = "==2.6.0"
+"flake8" = "*"
+yapf = "*"
+isort = "*"
 
 [requires]
 python_version = "2.7"
