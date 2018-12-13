@@ -41,8 +41,10 @@ class ModuleNode(object):
     APP = 'APP'
     LIBRARY = 'LIBRARY'
 
-    def __init__(self, name, node_type, deps=[]):
+    def __init__(self, name, node_type, deps=None):
         super(ModuleNode, self).__init__()
+        if deps is None:
+            deps = []
         self.name = name
         self.node_type = node_type  # app or library
         self.deps = deps
@@ -70,8 +72,8 @@ class ModuleNode(object):
         with each module only depending on a random selection of the modules
         below it"""
 
-        def node(layer, node):
-            return ModuleNode('MockLib{}_{}'.format(layer, node), ModuleNode.LIBRARY)
+        def node(f_layer, f_node):
+            return ModuleNode('MockLib{}_{}'.format(f_layer, f_node), ModuleNode.LIBRARY)
 
         layers = [[node(l, n) for n in xrange(nodes_per_layer)] for l in xrange(layer_count)]
         all_nodes = merge_lists(layers)

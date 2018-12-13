@@ -12,25 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-import tempfile
 import os.path
-import testfixtures.popen
-import mock
+import tempfile
+import unittest
 
-from pearpoet.statemanagement import XcodeVersion, SettingsState, XcodeManager
-from . import read_file, write_file
+import mock
+import testfixtures.popen
+from pearpoet.statemanagement import SettingsState, XcodeManager, XcodeVersion
+from utils import read_file, write_file
+
 
 def stdoutize(s):
     return b'{}\n'.format(s)
 
+
 class TestXcodeManager(unittest.TestCase):
+
     def setUp(self):
         self.mock_popen = testfixtures.popen.MockPopen()
         self.r = testfixtures.Replacer()
         self.r.replace('subprocess.Popen', self.mock_popen)
         self.addCleanup(self.r.restore)
-
 
     def test_get_dirs(self):
         x = XcodeManager()
@@ -64,31 +66,29 @@ class TestXcodeManager(unittest.TestCase):
         self.mock_popen.set_default()
         XcodeManager().clean_caches()
         x = self.mock_popen.mock.method_calls
-        self.assertEqual(len(x),9)
+        self.assertEqual(len(x), 9)
 
     def test_discover_xcode_versions(self):
-        #save_xcode_select / switch_xcode_version
+        # save_xcode_select / switch_xcode_version
         path = '/Applications/Xcode.app'
         self.mock_popen.set_command('xcode-select -p', stdout=b'{}\n'.format(path))
         self.mock_popen.set_command('sudo xcode-select -s ' + path)
 
-        #get_current_xcode_version
+        # get_current_xcode_version
         out = b'Xcode 10.0\nBuild version 10A255\n'
         self.mock_popen.set_command('xcodebuild -version', stdout=out)
 
-        #get_xcode_dirs
+        # get_xcode_dirs
         fake_paths = ['/Applications/Xcode.app']
         with mock.patch('os.listdir') as mocked_listdir:
             mocked_listdir.return_value = fake_paths
             versions = XcodeManager().discover_xcode_versions()
             expected = {('10.0', '10A255'): '/Applications/Xcode.app'}
-            self.assertEqual(versions,expected)
-
-
-
+            self.assertEqual(versions, expected)
 
 
 class TestSettingsState(unittest.TestCase):
+
     def setUp(self):
         self.mock_popen = testfixtures.popen.MockPopen()
         self.r = testfixtures.Replacer()
@@ -106,9 +106,9 @@ class TestSettingsState(unittest.TestCase):
         if os.path.isfile(conf_path):
             os.remove(conf_path)
         s.save_buckconfig_local()
-        self.assertFalse(os.path.isfile(bak_conf_path)) #no file to save
+        self.assertFalse(os.path.isfile(bak_conf_path))  # no file to save
 
-        write_file(conf_path,config_content)
+        write_file(conf_path, config_content)
 
         for _ in xrange(4):
             s.save_buckconfig_local()
@@ -122,14 +122,13 @@ class TestSettingsState(unittest.TestCase):
     def test_xcode(self):
         path = '/Applications/Xcode.10.0.0.10A255.app/Contents/Developer'
         self.mock_popen.set_command('xcode-select -p', stdout=stdoutize(path))
-        self.mock_popen.set_command('sudo xcode-select -s '+path)
+        self.mock_popen.set_command('sudo xcode-select -s ' + path)
         tmp = tempfile.gettempdir()
         s = SettingsState(tmp)
 
         s.save_xcode_select()
         self.assertEqual(s.select_path, path)
         s.restore_xcode_select()
-
 
 
 class TestXcodeVersion(unittest.TestCase):
@@ -194,5 +193,3 @@ class TestXcodeVersion(unittest.TestCase):
         self.assertTrue(az.__gt__(a))
         self.assertFalse(a.__gt__(az))
         self.assertTrue(b.__gt__(a))
-
-

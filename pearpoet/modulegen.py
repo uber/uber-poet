@@ -34,6 +34,7 @@ class BuckProjectGenerator(object):
         self.bzl_app_template = self.load_resource("mockapptemplate.bzl")
         self.swift_gen = SwiftFileGenerator()
         self.use_wmo = use_wmo
+        self.swift_file_size_loc = None
         self.calculate_loc()
 
     @property
@@ -58,19 +59,23 @@ class BuckProjectGenerator(object):
 
             self.swift_file_size_loc = int(file_result.text_line_count * fallback_code_multiplier)
 
-    def load_resource(self, name):
+    @staticmethod
+    def load_resource(name):
         with open(join(BuckProjectGenerator.RESOURCE_DIR, name), "r") as f:
             return f.read()
 
-    def copy_resource(self, name, dest):
+    @staticmethod
+    def copy_resource(name, dest):
         origin = join(BuckProjectGenerator.RESOURCE_DIR, name)
         shutil.copyfile(origin, dest)
 
-    def write_file(self, path, text):
+    @staticmethod
+    def write_file(path, text):
         with open(path, "w") as f:
             f.write(text)
 
-    def make_list_str(self, items):
+    @staticmethod
+    def make_list_str(items):
         return (",\n" + (" " * 8)).join(items)
 
     def make_dep_list(self, items):

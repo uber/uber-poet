@@ -61,7 +61,8 @@ class SettingsState(object):
 
 class XcodeManager(object):
 
-    def get_xcode_dirs(self, containing_dir='/Applications'):
+    @staticmethod
+    def get_xcode_dirs(containing_dir='/Applications'):
         items = os.listdir(containing_dir)
         return [join(containing_dir, d) for d in items if 'xcode' in d.lower() and d.endswith('app')]
 
@@ -72,7 +73,8 @@ class XcodeManager(object):
         build_id = version_out[1].split(' ')[2]
         return version_num, build_id
 
-    def switch_xcode_version(self, xcode_path):
+    @staticmethod
+    def switch_xcode_version(xcode_path):
         subprocess.check_call(['sudo', 'xcode-select', '-s', xcode_path])
 
     def xcode_version_of_path(self, path):
@@ -99,7 +101,8 @@ class XcodeManager(object):
 
         return out
 
-    def _get_global_module_cache_dir(self):
+    @staticmethod
+    def _get_global_module_cache_dir():
         try:
             username = getpass.getuser()
         except Exception as e:
@@ -112,27 +115,28 @@ class XcodeManager(object):
     def clean_caches(self):
         logging.info('Cleaning Xcode caches...')
 
-        DIRECTORIES_TO_DELETE = (
+        directories_to_delete = (
             '~/Library/Caches/com.apple.dt.Xcode',
             '~/Library/Developer/Xcode/DerivedData',
             self._get_global_module_cache_dir(),
         )
 
-        for directory in DIRECTORIES_TO_DELETE:
+        for directory in directories_to_delete:
             full_path = os.path.expanduser(directory)
             logging.info('Removing %s', full_path)
             subprocess.check_call(['rm', '-fr', full_path])
 
 
 class XcodeVersion(object):
-    "Represents an xcode version that is comparable"
+    """Represents an xcode version that is comparable"""
 
     def __init__(self, raw_version, build):
         self.version = self.numeric_version(raw_version)
         self.raw_version = raw_version
         self.build = build
 
-    def numeric_version(self, raw):
+    @staticmethod
+    def numeric_version(raw):
         return pad_list([int(x) for x in raw.split('.')], 3, 0)
 
     @property
@@ -141,12 +145,14 @@ class XcodeVersion(object):
 
     @property
     def raw(self):
-        return (self.raw_version, self.build)
+        return self.raw_version, self.build
 
     @staticmethod
     def choose_latest_major_versions(raw_versions):
-        """This selects the latest version for each major version of xcode in a set of xcode paths.
-        raw_versions is a {(version_str, build_str): xcode_path_str} dictionary. """
+        """
+        This selects the latest version for each major version of xcode in a set of xcode paths.
+        raw_versions is a {(version_str, build_str): xcode_path_str} dictionary.
+        """
 
         versions = {XcodeVersion(raw_version, build): path for (raw_version, build), path in raw_versions.iteritems()}
 

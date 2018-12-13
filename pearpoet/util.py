@@ -18,49 +18,49 @@ import subprocess
 
 
 class SeedContainer(object):
-    "Holds the seed number variable"
+    """Holds the seed number variable"""
     seed = 0
 
 
 def bool_xor(a, b):
-    "Python's ^ operator is a bitwise xor, so we need to make a boolean equivalent function."
+    """Python's ^ operator is a bitwise xor, so we need to make a boolean equivalent function."""
     return (a and not b) or (not a and b)
 
 
 def seed():
-    "Gives you a unique number for codegen ids"
+    """Gives you a unique number for codegen ids"""
     SeedContainer.seed += 1
     return SeedContainer.seed
 
 
 def first_in_dict(d):
-    "Grabs the value returned by the first value in d.keys()"
+    """Grabs the value returned by the first value in d.keys()"""
     if len(d) > 0:
         k = d.keys()[0]
         return d[k]
     return None
 
 
-def first_key(d):
-    "d.keys()[0]"
-    return d.keys()[0]
+def first_key(dictionary_var):
+    """dictionary_var.keys()[0]"""
+    return dictionary_var.keys()[0]
 
 
 def makedir(path):
-    "Does a mkdir -p `path` if it doesn't exist"
+    """Does a mkdir -p `path` if it doesn't exist"""
     if not os.path.exists(path):
         os.makedirs(path)
 
 
 def merge_lists(two_d_list):
-    "Merges a 2d array into a 1d array. Ex: [[1,2],[3,4]] becomes [1,2,3,4]"
+    """Merges a 2d array into a 1d array. Ex: [[1,2],[3,4]] becomes [1,2,3,4]"""
     # I know this is a fold / reduce, but I got an error when I tried
     # the reduce function?
     return [i for li in two_d_list for i in li]
 
 
 def sudo_enabled():
-    "Tells you if the current 'shell' has sudo permission."
+    """Tells you if the current 'shell' has sudo permission."""
     try:
         subprocess.check_call(['sudo', '-n', 'true'])
         return True
@@ -69,13 +69,16 @@ def sudo_enabled():
 
 
 def check_dependent_commands(command_list):
-    """Checks if the commands are accessible by the process.
-    Returns a list of misssing commands.  Empty if all commands are available."""
+    """
+    Checks if the commands are accessible by the process.
+    Returns a list of misssing commands.  Empty if all commands are available.
+    """
+    # noinspection PyUnresolvedReferences
     return [command for command in command_list if not distutils.spawn.find_executable(command)]
 
 
 def pad_list(l, size, value=0):
-    "Pads the right side of the list `l` to `size` if len(l) is less than size with `value`."
+    """Pads the right side of the list `l` to `size` if len(l) is less than size with `value`."""
     if len(l) >= size:
         return l
 
@@ -83,7 +86,9 @@ def pad_list(l, size, value=0):
 
 
 def grab_mac_marketing_name():
-    """Returns a string telling you you the macos marketing name of the device your running on.
-    Ex: "MacBook Pro (15-inch, 2018)" """
+    """
+    Returns a string telling you you the macOS marketing name of the device your running on.
+    Ex: "MacBook Pro (15-inch, 2018)"
+    """
     script_path = os.path.join(os.path.dirname(__file__), "resources", "get_market_name.sh")
     return subprocess.check_output([script_path])

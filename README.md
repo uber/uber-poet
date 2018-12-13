@@ -33,6 +33,9 @@ See `./genproj.py -h` or `./mulisuite.py -h` for general help.  Also take a look
 	* Look at `examples/dev_config` for recommended configurations.
 	* Just open this directory in vscode (Ex: `code pear-poet`) to start developing!
 * pytest for testing
+* yapf for formatting
+* isort for sorting imports
+* flake8 for linting
 
 ## Possible Future Improvements
 

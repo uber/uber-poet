@@ -15,14 +15,15 @@
 import os
 import tempfile
 import unittest
-import testfixtures.popen
-import mock
-
-from testfixtures.popen import PopenBehaviour, MockPopen
 from os.path import join
+
+import mock
+import testfixtures.popen
 from pearpoet.genproj import GenProjCommandLine
 from pearpoet.multisuite import CommandLineMultisuite
-from . import integration_test, read_file
+from testfixtures.popen import MockPopen, PopenBehaviour
+from utils import integration_test, read_file
+
 
 class TestIntegration(unittest.TestCase):
 
@@ -43,7 +44,7 @@ class TestIntegration(unittest.TestCase):
             self.assertIn(file_name, app_contents)
             with open(join(main_path, file_name), 'r') as f:
                 self.assertGreater(len(f.read()), 0)
-                #TODO actually verify generated code?
+                # TODO actually verify generated code?
 
         # Lib dir
         self.assertIn(lib_name, contents)
@@ -52,7 +53,7 @@ class TestIntegration(unittest.TestCase):
         self.assertIn('File0.swift', lib_contents)
         with open(join(lib_path, 'File0.swift'), 'r') as f:
             self.assertGreater(len(f.read()), 0)
-            #TODO actually verify generated code?
+            # TODO actually verify generated code?
 
     @integration_test
     def test_flat_genproj(self):
@@ -66,13 +67,11 @@ class TestIntegration(unittest.TestCase):
 
         self.verify_genproj('MockLib53', 101, app_path)
 
-
     @integration_test
     def test_dot_genproj(self):
         app_path = join(tempfile.gettempdir(), 'apps', 'mockapp')
 
         test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_dot.gv')
-        app_path = os.path.join(tempfile.gettempdir(), 'apps', 'mockapp')
         args = [
             "--output_directory", app_path, "--buck_module_path", "/apps/mockapp", "--gen_type", "dot",
             "--lines_of_code", "150000", "--dot_file", test_fixture_path, "--dot_root", "DotReaderMainModule"
@@ -81,7 +80,6 @@ class TestIntegration(unittest.TestCase):
         command.main(args)
 
         self.verify_genproj('DotReaderLib17', 338, app_path)
-
 
     @integration_test
     def test_flat_multisuite(self):
@@ -101,8 +99,13 @@ class TestIntegration(unittest.TestCase):
         root_path = join(tempfile.gettempdir(), 'multisuite_test')
         app_path = join(root_path, 'apps', 'mockapp')
         log_path = join(root_path, 'logs')
-        args = ["--log_dir", log_path, "--app_gen_output_dir", root_path, "--test_build_only", "--switch_xcode_versions","--full_clean"]
+        args = [
+            "--log_dir", log_path, "--app_gen_output_dir", root_path, "--test_build_only", "--switch_xcode_versions",
+            "--full_clean"
+        ]
 
+        # we need the unused named variable for mocking purposes
+        # noinspection PyUnusedLocal
         def command_callable(command, stdin):
             if 'cloc' in command:
                 return PopenBehaviour(stdout=cloc_out)
@@ -116,11 +119,10 @@ class TestIntegration(unittest.TestCase):
             mock_popen.set_default(behaviour=command_callable)
 
             with mock.patch('distutils.spawn.find_executable') as mock_find:
-                mock_find.return_value = '/bin/ls' # A non empty return value basically means "I found that executable"
+                mock_find.return_value = '/bin/ls'  # A non empty return value basically means "I found that executable"
                 CommandLineMultisuite().main(args)
                 self.assertGreater(os.listdir(app_path), 0)
                 self.verify_genproj('MockLib53', 101, app_path)
-
 
     @integration_test
     def test_dot_multisuite(self):

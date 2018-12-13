@@ -24,10 +24,10 @@ PROJECT_OUT="$GENPROJ_ROOT/mockapp"
 
 xcodebuild -version
 
-$APP_GEN --output_directory "$PROJECT_OUT" \
-         --buck_module_path "/mockapp" \
-         --gen_type flat \
-         --lines_of_code 150000
+"$APP_GEN" --output_directory "$PROJECT_OUT" \
+           --buck_module_path "/mockapp" \
+           --gen_type flat \
+           --lines_of_code 150000
 
 MOCK_WORKSPACE_PATH="$PROJECT_OUT/App/MockApp.xcworkspace"
 cd "$GENPROJ_ROOT"
