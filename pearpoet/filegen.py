@@ -62,7 +62,8 @@ class SwiftFileGenerator(FileGenerator):
     def __init__(self):
         self.gen_state = {}
 
-    def gen_func(self, function_count, var_name):
+    @staticmethod
+    def gen_func(function_count, var_name):
         out = []
         nums = []
 
@@ -86,7 +87,9 @@ class SwiftFileGenerator(FileGenerator):
 
         return "\n".join(out), class_nums
 
-    def gen_file(self, class_count, function_count, import_list=[]):
+    def gen_file(self, class_count, function_count, import_list=None):
+        if import_list is None:
+            import_list = []
         imports = "\n".join(["import " + i for i in import_list])
         func_out, func_nums = self.gen_func(function_count, "7")
         class_out, class_nums = self.gen_class(class_count, 5)
@@ -95,7 +98,8 @@ class SwiftFileGenerator(FileGenerator):
 
         return FileResult("\n".join(chunks), func_nums, class_nums)
 
-    def gen_main(self, importing_module_name, class_num, func_num):
+    @staticmethod
+    def gen_main(importing_module_name, class_num, func_num):
         import_line = 'import {}'.format(importing_module_name)
         action_expr = 'MyClass{}().complexCrap{}(arg: 4,stuff: 2)'.format(class_num, func_num)
         print_line = 'print("\\({})")'.format(action_expr)

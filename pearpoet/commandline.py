@@ -101,7 +101,7 @@ class AppGenerationConfig(object):
 
 
 def gen_graph(gen_type, config):
-    app_node, node_list = None, None
+    # app_node, node_list = None, None
     modules_per_layer = config.module_count / config.app_layer_count
 
     if gen_type == ModuleGenType.flat:
@@ -131,7 +131,7 @@ def del_old_output_dir(output_directory):
         shutil.rmtree(output_directory)
 
 
-def make_custom_buckconfig_local(buckconfig_path, build_trace_path):
+def make_custom_buckconfig_local(buckconfig_path):
     logging.warn('Overwriting .buckconfig.local file at: %s', buckconfig_path)
     config = ConfigParser.RawConfigParser()
     config.add_section('project')

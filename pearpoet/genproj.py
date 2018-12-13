@@ -24,7 +24,8 @@ from moduletree import ModuleGenType
 
 class GenProjCommandLine(object):
 
-    def make_args(self, args):
+    @staticmethod
+    def make_args(args):
         """Parses command line arguments"""
         arg_desc = 'Generate a fake test project with many buck modules'
 

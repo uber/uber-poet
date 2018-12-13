@@ -32,7 +32,8 @@ from util import check_dependent_commands, grab_mac_marketing_name, makedir, sud
 
 class CommandLineMultisuite(object):
 
-    def parse_config(self, args):
+    @staticmethod
+    def parse_config(args):
         tmp_root = join(tempfile.gettempdir(), 'mock_app_gen_out')
         log_root = join(tmp_root, 'logs')
 
@@ -81,6 +82,7 @@ class CommandLineMultisuite(object):
 
         return out
 
+    # noinspection PyAttributeOutsideInit
     def config_to_vars(self, config):
         self.app_gen_options = commandline.AppGenerationConfig()
         self.app_gen_options.pull_from_args(config)
@@ -106,10 +108,13 @@ class CommandLineMultisuite(object):
 
         try:
             self.run_multisuite()
+        except Exception as e:
+            print e
         finally:
             self.multisuite_cleanup()
             logging.info("Done")
 
+    # noinspection PyAttributeOutsideInit
     def make_context(self, log_dir, output_dir, test_build):
         self.cpu_logger = CPULogger()
         self.xcode_manager = XcodeManager()
@@ -226,6 +231,7 @@ class CommandLineMultisuite(object):
             subprocess.check_call(['system_profiler', 'SPHardwareDataType', '-detailLevel', 'mini'], stdout=info_file)
             subprocess.check_call(['sw_vers'], stdout=info_file)
 
+    # noinspection PyAttributeOutsideInit
     def multisuite_setup(self):
         self.make_context(self.log_dir, self.output_dir, self.test_build_only)
         self.settings_state.save_buckconfig_local()
@@ -271,7 +277,8 @@ class CommandLineMultisuite(object):
         if self.trace_cpu:
             self.cpu_logger.kill()
 
-    def sudo_warning(self):
+    @staticmethod
+    def sudo_warning():
         if not sudo_enabled():
             logging.warning('I would suggest executing this in a bash script and adding a sudo keep alive so you')
             logging.warning('can run this fully unattended: https://gist.github.com/cowboy/3118588')
@@ -289,7 +296,7 @@ class CommandLineMultisuite(object):
         if self.trace_cpu:
             self.cpu_logger.start()
 
-        commandline.make_custom_buckconfig_local(self.buckconfig_path, self.build_trace_path)
+        commandline.make_custom_buckconfig_local(self.buckconfig_path)
 
         for xcode_version in self.xcode_versions:
             if self.switch_xcode_versions:
