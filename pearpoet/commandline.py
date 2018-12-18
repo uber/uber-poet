@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import ConfigParser
 import json
 import logging
@@ -20,10 +22,10 @@ import shutil
 import subprocess
 from os.path import join
 
-import dotreader
-from cpulogger import CPULog
-from moduletree import ModuleGenType, ModuleNode
-from util import bool_xor
+from . import dotreader
+from .cpulogger import CPULog
+from .moduletree import ModuleGenType, ModuleNode
+from .util import bool_xor
 
 
 class AppGenerationConfig(object):

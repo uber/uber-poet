@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import getpass
 import logging
 import os
@@ -20,7 +22,7 @@ import subprocess
 import sys
 from os.path import join
 
-from util import pad_list
+from .util import pad_list
 
 
 class SettingsState(object):

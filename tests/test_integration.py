@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import os
 import tempfile
 import unittest
@@ -22,7 +24,8 @@ import testfixtures.popen
 from pearpoet.genproj import GenProjCommandLine
 from pearpoet.multisuite import CommandLineMultisuite
 from testfixtures.popen import MockPopen, PopenBehaviour
-from utils import integration_test, read_file
+
+from .utils import integration_test, read_file
 
 
 class TestIntegration(unittest.TestCase):

@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import logging
 import shutil
 import tempfile
 from os.path import dirname, join
 
-from commandline import count_loc
-from filegen import SwiftFileGenerator
-from moduletree import ModuleNode
-from util import first_in_dict, first_key, makedir
+from .commandline import count_loc
+from .filegen import SwiftFileGenerator
+from .moduletree import ModuleNode
+from .util import first_in_dict, first_key, makedir
 
 
 class BuckProjectGenerator(object):
