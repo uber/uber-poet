@@ -76,7 +76,7 @@ class CPULog(object):
         Finds the minimum and maximum times of items inside a chrome trace list,
         so the CPU log won't add CPU items outside of it's range.
         """
-        min_ts = sys.maxint
+        min_ts = sys.maxsize
         max_ts = -1
         for trace in traces:
             ts = trace['ts']

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import os.path
 import tempfile
 import unittest
@@ -19,7 +21,8 @@ import unittest
 import mock
 import testfixtures.popen
 from pearpoet.statemanagement import SettingsState, XcodeManager, XcodeVersion
-from utils import read_file, write_file
+
+from .utils import read_file, write_file
 
 
 def stdoutize(s):

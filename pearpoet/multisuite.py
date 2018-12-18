@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 import argparse
 import datetime
 import logging
@@ -22,12 +24,11 @@ import tempfile
 import time
 from os.path import join
 
-import commandline
-import modulegen
-from cpulogger import CPULogger
-from moduletree import ModuleGenType
-from statemanagement import SettingsState, XcodeManager
-from util import check_dependent_commands, grab_mac_marketing_name, makedir, sudo_enabled
+from . import commandline, modulegen
+from .cpulogger import CPULogger
+from .moduletree import ModuleGenType
+from .statemanagement import SettingsState, XcodeManager
+from .util import check_dependent_commands, grab_mac_marketing_name, makedir, sudo_enabled
 
 
 class CommandLineMultisuite(object):
@@ -109,7 +110,7 @@ class CommandLineMultisuite(object):
         try:
             self.run_multisuite()
         except Exception as e:
-            print e
+            print(e)
         finally:
             self.multisuite_cleanup()
             logging.info("Done")

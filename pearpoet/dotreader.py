@@ -12,16 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import itertools
 import logging
 import os
 import tempfile
 from collections import defaultdict
 from pprint import pprint
+from typing import Dict, List, Set
 
-from moduletree import ModuleNode
-from util import makedir
-from typing import List, Dict, Set
+from .moduletree import ModuleNode
+from .util import makedir
 
 
 class DotFileReader(object):
@@ -143,7 +145,7 @@ class DotFileReader(object):
 
         def name(orig):
             if orig not in name_dict:
-                name_dict[orig] = 'DotReaderLib' + str(lib_index.next())
+                name_dict[orig] = 'DotReaderLib' + str(next(lib_index))
             return name_dict[orig]
 
         return [[name(left), name(right)] for left, right in edges]

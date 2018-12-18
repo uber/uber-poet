@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import argparse
 import logging
 import sys
 import time
 
-import commandline
-import modulegen
-from moduletree import ModuleGenType
+from . import commandline, modulegen
+from .moduletree import ModuleGenType
 
 
 class GenProjCommandLine(object):
