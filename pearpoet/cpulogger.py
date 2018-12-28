@@ -94,7 +94,7 @@ class CPULog(object):
         return traces + traces_in_range
 
 
-# TODO Use psutil instead of top?
+# TODO Use psutil instead of top bash script to fix app killing issues?
 class CPULogger(object):
     """
     This class uses the top command under the hood to continiously log system cpu
@@ -120,9 +120,10 @@ class CPULogger(object):
         """
         Should stop the CPU logger.
 
-        MAJOR TODO doesn't do anything, either because top runs as root and thus you need
-        to be root to kill it or some process group thing we are not doing properly
-        self.process.kill() doesnt work either.
+        MAJOR
+        TODO doesn't do anything, either because top runs as root and thus you need
+             to be root to kill it or some process group thing we are not doing properly
+             self.process.kill() doesnt work either.
         """
         if self.process:
             self.process.terminate()

@@ -2,11 +2,12 @@
 
 ## Description
 
-This python module makes mock Xcode swift app projects with BUCK.  It lets us test different swift module configurations to see how much build speed is affected by different dependency graphs with identical amounts of code.  There are two main command line apps:
+This python app makes mock Xcode Swift app projects with [BUCK](https://buckbuild.com/).  It lets us test different swift module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
 
 * `genproj.py` which generates one app which you have to build manually yourself.  Either with BUCK or xcodebuild.
-* `multisuite.py`, which generates all module configs, builds them, records how long they take to build and outputs it's results to a directory passed in the command line
+* `multisuite.py`, which generates all module configs, builds them, records how long they take to build into a CSV and outputs it's results to a directory passed in the command line.  Essentialy a benchmark test suite.  Can take several hours to run depending how many lines of code each app takes.
 
+This app was architected so other languages or build systems wouldn't be much work to add.  Theoretically you could extend this app to generate java gradle android apps with the same [dependency graph types](docs/layer_types.md).
 
 ## How to Install / Dependencies
 
@@ -29,21 +30,23 @@ See `./genproj.py -h` or `./mulisuite.py -h` for general help.  Also take a look
 
 ## How we Develop
 
-* Currently we use [Visual Studio Code](https://code.visualstudio.com)
-	* Look at `examples/dev_config` for recommended configurations.
-	* Just open this directory in vscode (Ex: `code pear-poet`) to start developing!
-* pytest for testing
+* We used [Visual Studio Code](https://code.visualstudio.com) at first, but then moved to [pycharm](https://www.jetbrains.com/pycharm/) because of it's code inspector, richer refactor tools and less configuration required to do basic things like testing.
+* All new code should add types when appropriate.  Types were added to help with a few refactors.
+* It's a goal to eventually move this code base to python 3, probably when python 2.7 won't be maintained anymore after 2020.
+
+* pytest for running tests, basic unittest for writing tests
 * yapf for formatting
 * isort for sorting imports
-* flake8 for linting
+* flake8 & pylint for linting
+* pycharm's code inspector
 
 ## Possible Future Improvements
 
 * Add simulation enhancers if the the mock app isn't good enough in simulating the build speed of large applications.
+  * Make Objective-C modules as part of the mock app generation to better simulate a mixed app 
   * Add chokepoint build modules, simulating something similar to some large modules in Uber's apps.
   * Make codegen actually call functions in other modules and inside the module.
-  * Additions to dot graph mode, using cloc's sqllite3 db:
-      * Make Objective-C modules as part of the mock app generation to better simulate a mixed app
+  * Additions to dot graph mode, using cloc's sqllite3 output:
       * Query the sqllite3 db that cloc generates to make the mock modules the same size as the real app's modules
       * Afterwards modify the generated mock app to see what causes slowdowns or speedups.
   * Research what the poor points of the swift compiler is and sprinkle that into the codegen. Some ideas:
@@ -56,4 +59,4 @@ See `./genproj.py -h` or `./mulisuite.py -h` for general help.  Also take a look
 * Add more project config support:
   * Add swift project manager project descripition support to remove buck dependency.
   * Test / add bazel support to see if there is any difference between buck or bazel
-  * (relatively a more work) add direct xcode project & workspace direction
+  * (relatively more work) add direct xcode project & workspace direction

@@ -50,6 +50,10 @@ class GenProjCommandLine(object):
             '--use_wmo',
             default=False,
             help='Wether or not to use whole module optimization when building swift modules.')
+        parser.add_argument(
+            '--print_dependency_graph',
+            default=False,
+            help='If true, prints out the dependency edge list and exits instead of generating an application.')
 
         commandline.AppGenerationConfig.add_app_gen_options(parser)
         args = parser.parse_args(args)
@@ -67,6 +71,10 @@ class GenProjCommandLine(object):
         graph_config.pull_from_args(args)
         app_node, node_list = commandline.gen_graph(args.gen_type, graph_config)
 
+        if args.print_dependency_graph:
+            print_nodes(node_list)
+            exit(0)
+
         commandline.del_old_output_dir(args.output_directory)
         gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path, use_wmo=args.use_wmo)
 
@@ -79,6 +87,10 @@ class GenProjCommandLine(object):
         fin = time.time()
         logging.info("Done in %f s", fin - start)
 
+def print_nodes(node_list):
+    edges = [(node.name, dep.name) for node in node_list for dep in node.deps]
+    for edge in edges:
+        print edge[0], edge[1]
 
 def main():
     GenProjCommandLine().main()
