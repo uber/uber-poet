@@ -5,9 +5,9 @@
 This python app makes mock Xcode Swift app projects with [BUCK](https://buckbuild.com/).  It lets us test different swift module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
 
 * `genproj.py` which generates one app which you have to build manually yourself.  Either with BUCK or xcodebuild.
-* `multisuite.py`, which generates all module configs, builds them, records how long they take to build into a CSV and outputs it's results to a directory passed in the command line.  Essentialy a benchmark test suite.  Can take several hours to run depending how many lines of code each app takes.
+* `multisuite.py`, which generates all module configs, builds them, records how long they take to build into a CSV and outputs it's results to a directory passed in the command line.  Essentially a benchmark test suite.  Can take several hours to run depending how many lines of code each app takes.
 
-This app was architected so other languages or build systems wouldn't be much work to add.  Theoretically you could extend this app to generate java gradle android apps with the same [dependency graph types](docs/layer_types.md).
+This app was architected so other languages, graph generators or build systems wouldn't be much work to add.  Theoretically you could extend this app to generate java gradle android apps with the same [dependency graph types](docs/layer_types.md).
 
 ## How to Install / Dependencies
 
@@ -57,6 +57,25 @@ See `./genproj.py -h` or `./mulisuite.py -h` for general help.  Also take a look
   * Import third party libraries from the cocoapods repo, use them some how.
 
 * Add more project config support:
-  * Add swift project manager project descripition support to remove buck dependency.
+  * Add swift project manager project description support to remove buck dependency.
   * Test / add bazel support to see if there is any difference between buck or bazel
   * (relatively more work) add direct xcode project & workspace direction
+
+## Basic App Architecture
+
+Generating a mock app consists of 3 parts:
+
+* Generating an abstract module dependency graph that represents the mock app. (`ModuleNode` in `moduletree.py`)
+* Feeding this graph into a build description generator (ex: `BuckProjectGenerator` in `projectgen.py`), which creates project config files.
+* And the build description generator using a file generator (ex `SwiftFileGenerator` in `filegen.py`) creating mock code files.
+* And then writing all these files into a tree of folders
+
+Most variation & configuration is shown in the graphs that the graph generation functions create.  So the if command line says there are 50 modules or 100 modules with a [`bs_layered`](docs/layer_types.md) graph type, that will show up in the generated abstract graph. 
+
+`GenProjCommandLine` from `genproj.py` is the UI that the user's configuration for generating a mock app is passed into the above process.
+
+`CommandLineMultisuite` from `multisuite.py`, does the same thing as `genproj.py`, but with a list of project generators, and builds these projects and records the build times.   It also gives you configuration options in how building is done.  Multisuite also uses code in `statementmanagement.py` & `cpulogger.py` to help it manage xcode build configuration and track CPU usage.
+
+`dotreader.py` is used to generate dependency graphs from dot files.
+
+   

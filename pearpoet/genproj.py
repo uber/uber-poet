@@ -19,7 +19,7 @@ import logging
 import sys
 import time
 
-from . import commandline, modulegen
+from . import commandlineutil, projectgen
 from .moduletree import ModuleGenType
 
 
@@ -55,9 +55,9 @@ class GenProjCommandLine(object):
             default=False,
             help='If true, prints out the dependency edge list and exits instead of generating an application.')
 
-        commandline.AppGenerationConfig.add_app_gen_options(parser)
+        commandlineutil.AppGenerationConfig.add_app_gen_options(parser)
         args = parser.parse_args(args)
-        commandline.AppGenerationConfig.validate_app_gen_options(args)
+        commandlineutil.AppGenerationConfig.validate_app_gen_options(args)
 
         return args
 
@@ -67,16 +67,16 @@ class GenProjCommandLine(object):
 
         args = self.make_args(args)
 
-        graph_config = commandline.AppGenerationConfig()
+        graph_config = commandlineutil.AppGenerationConfig()
         graph_config.pull_from_args(args)
-        app_node, node_list = commandline.gen_graph(args.gen_type, graph_config)
+        app_node, node_list = commandlineutil.gen_graph(args.gen_type, graph_config)
 
         if args.print_dependency_graph:
             print_nodes(node_list)
             exit(0)
 
-        commandline.del_old_output_dir(args.output_directory)
-        gen = modulegen.BuckProjectGenerator(args.output_directory, args.buck_module_path, use_wmo=args.use_wmo)
+        commandlineutil.del_old_output_dir(args.output_directory)
+        gen = projectgen.BuckProjectGenerator(args.output_directory, args.buck_module_path, use_wmo=args.use_wmo)
 
         logging.info("Generation type: %s", args.gen_type)
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
@@ -87,10 +87,12 @@ class GenProjCommandLine(object):
         fin = time.time()
         logging.info("Done in %f s", fin - start)
 
+
 def print_nodes(node_list):
     edges = [(node.name, dep.name) for node in node_list for dep in node.deps]
     for edge in edges:
         print edge[0], edge[1]
+
 
 def main():
     GenProjCommandLine().main()

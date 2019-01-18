@@ -24,7 +24,7 @@ import tempfile
 import time
 from os.path import join
 
-from . import commandline, modulegen
+from . import commandlineutil, projectgen
 from .cpulogger import CPULogger
 from .moduletree import ModuleGenType
 from .statemanagement import SettingsState, XcodeManager
@@ -47,7 +47,7 @@ class CommandLineMultisuite(object):
             '--app_gen_output_dir', default=tmp_root, help="Where generated mock apps should be outputted to."),
         parser.add_argument('--buck_command', default='buck', help="The path to the buck binary.  Defaults to `buck`."),
 
-        commandline.AppGenerationConfig.add_app_gen_options(parser)
+        commandlineutil.AppGenerationConfig.add_app_gen_options(parser)
 
         actions = parser.add_argument_group('Extra Actions')
         actions.add_argument(
@@ -79,13 +79,13 @@ class CommandLineMultisuite(object):
             help="Only builds a small flat build type to create short testing loops."),
 
         out = parser.parse_args(args)
-        commandline.AppGenerationConfig.validate_app_gen_options(out)
+        commandlineutil.AppGenerationConfig.validate_app_gen_options(out)
 
         return out
 
     # noinspection PyAttributeOutsideInit
     def config_to_vars(self, config):
-        self.app_gen_options = commandline.AppGenerationConfig()
+        self.app_gen_options = commandlineutil.AppGenerationConfig()
         self.app_gen_options.pull_from_args(config)
 
         self.log_dir = config.log_dir
@@ -159,13 +159,13 @@ class CommandLineMultisuite(object):
         logging.info('##### Generating %s', gen_info)
 
         self.project_generator.use_wmo = wmo_enabled
-        commandline.del_old_output_dir(self.mock_output_dir)
+        commandlineutil.del_old_output_dir(self.mock_output_dir)
 
         logging.info('Generating mock app')
-        app_node, node_list = commandline.gen_graph(gen_type, self.app_gen_options)
+        app_node, node_list = commandlineutil.gen_graph(gen_type, self.app_gen_options)
         self.project_generator.gen_app(app_node, node_list, self.app_gen_options.lines_of_code)
 
-        swift_loc = commandline.count_loc(self.mock_output_dir)
+        swift_loc = commandlineutil.count_loc(self.mock_output_dir)
         logging.info('App type "%s" generated %d loc', gen_type, swift_loc)
 
         # Build App
@@ -260,7 +260,7 @@ class CommandLineMultisuite(object):
 
         self.dump_system_info()
 
-        self.project_generator = modulegen.BuckProjectGenerator(self.mock_output_dir, self.buck_path)
+        self.project_generator = projectgen.BuckProjectGenerator(self.mock_output_dir, self.buck_path)
 
         self.verify_dependencies()
 
@@ -297,7 +297,7 @@ class CommandLineMultisuite(object):
         if self.trace_cpu:
             self.cpu_logger.start()
 
-        commandline.make_custom_buckconfig_local(self.buckconfig_path)
+        commandlineutil.make_custom_buckconfig_local(self.buckconfig_path)
 
         for xcode_version in self.xcode_versions:
             if self.switch_xcode_versions:
@@ -311,7 +311,7 @@ class CommandLineMultisuite(object):
 
         if self.trace_cpu:
             self.cpu_logger.stop()
-            commandline.apply_cpu_to_traces(self.build_trace_path, self.cpu_logger, start_time)
+            commandlineutil.apply_cpu_to_traces(self.build_trace_path, self.cpu_logger, start_time)
 
 
 def main():
