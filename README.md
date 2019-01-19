@@ -63,6 +63,37 @@ See `./genproj.py -h` or `./mulisuite.py -h` for general help.  Also take a look
 
 ## Basic App Architecture
 
+If you were to summarize Pear Poet as some python pseudocode:
+
+```python
+def make_project(config):
+    abstract_dependency_graph = config.graph_generation_function(config.project_generation_options)
+    swift_file_maker = SwiftFileGenerator()
+    project_gen = BuckProjectGenerator(swift_file_maker)
+    project_gen.generate_project_from(abstract_dependency_graph)
+    project_gen.write_to_folder(config.output_path)
+    
+def multisuite(config):
+    original_state = save_xcode_state()
+    
+    for xcode_config in config.xcode_configs:
+        set_xcode_state(xcode_config)
+        
+        for gen_func in config.graph_generation_functions:
+            proj_config = ProjectConfig(gen_func, join(config.output_path, gen_func.name)
+            make_project(proj_config)
+            
+            trace = TimeAndCPUTracer().start()
+            build_project(proj_config)
+            trace.stop()
+            
+            trace.append_result_to_csv(config, proj_config)
+            
+    set_xcode_state(original_state)
+```
+
+More details:
+
 Generating a mock app consists of 3 parts:
 
 * Generating an abstract module dependency graph that represents the mock app. (`ModuleNode` in `moduletree.py`)
