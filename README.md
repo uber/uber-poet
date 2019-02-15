@@ -92,7 +92,7 @@ def multisuite(config):
     set_xcode_state(original_state)
 ```
 
-More details:
+![mock application generation code flow](docs/images/project_gen.png)
 
 Generating a mock app consists of 3 parts:
 
