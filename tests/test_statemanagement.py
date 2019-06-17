@@ -20,7 +20,7 @@ import unittest
 
 import mock
 import testfixtures.popen
-from pearpoet.statemanagement import SettingsState, XcodeManager, XcodeVersion
+from uberpoet.statemanagement import SettingsState, XcodeManager, XcodeVersion
 
 from .utils import read_file, write_file
 

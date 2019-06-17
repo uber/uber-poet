@@ -5,11 +5,11 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Pear Mock App$(DISPLAY_NAME_SUFFIX)</string>
+	<string>Uber Mock App$(DISPLAY_NAME_SUFFIX)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.pear.PearMockApp$(BUNDLE_ID_SUFFIX)</string>
+	<string>com.uber.UberMockApp$(BUNDLE_ID_SUFFIX)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleLocalizations</key>
@@ -32,10 +32,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.pear.mock.app</string>
+			<string>com.uber.mock.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>pearmockapp</string>
+				<string>ubermockapp</string>
 			</array>
 		</dict>
 	</array>

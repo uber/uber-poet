@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pearpoet.multisuite import CommandLineMultisuite
+from uberpoet.multisuite import CommandLineMultisuite
 
 if __name__ == "__main__":
     CommandLineMultisuite().main()

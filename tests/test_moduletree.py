@@ -14,7 +14,7 @@
 
 import unittest
 
-from pearpoet.moduletree import ModuleNode
+from uberpoet.moduletree import ModuleNode
 
 
 class TestModuleTree(unittest.TestCase):

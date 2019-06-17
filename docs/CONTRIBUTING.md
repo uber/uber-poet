@@ -2,7 +2,7 @@
 
 Uber welcomes contributions of all kinds and sizes. This includes everything from from simple bug reports to large features.
 
-Before we can accept your contributions, we kindly ask you to sign our [Contributor License Agreement](https://cla-assistant.io/uber/pear-poet).
+Before we can accept your contributions, we kindly ask you to sign our [Contributor License Agreement](https://cla-assistant.io/uber/uber-poet).
 
 ## Workflow
 
@@ -16,7 +16,7 @@ Small pull requests for things like typos, bug fixes, etc are always welcome.
 
 ## DOs and DON'Ts
 
-* DO read this document to understand how Pear Poet is built and how we develop.
+* DO read this document to understand how Uber Poet is built and how we develop.
 * DO write your change to conform to our formatting, lint, import sorting, etc tools before uploading your pull request.
 * DO add types if possible with new and old code.  Types help with refactoring and are unit tests you don't have to write.
 * DO include tests when adding new features. When fixing bugs, start with adding a test that highlights how the current behavior is broken.
@@ -29,7 +29,7 @@ Small pull requests for things like typos, bug fixes, etc are always welcome.
 * It's a goal to eventually move this code base to python 3, probably when python 2.7 won't be maintained anymore after 2020.
 
 Tools used for managing the code base:
-* pytest for running tests, basic unittest for writing tests
+* pytest for running tests, basic unittest for writing tests. Run tests with your IDE or `pipenv run pytest`.
 * yapf for formatting
 * isort for sorting imports
 * flake8 & pylint for linting
@@ -39,7 +39,7 @@ Tools used for managing the code base:
 
 ## Basic App Architecture
 
-If you were to summarize Pear Poet as some python pseudocode:
+If you were to summarize Uber Poet as some python pseudocode:
 
 ```python
 def make_project(config):

@@ -1,8 +1,8 @@
 import os
 import unittest
 
-from pearpoet.dotreader import DotFileReader
-from pearpoet.moduletree import ModuleNode
+from uberpoet.dotreader import DotFileReader
+from uberpoet.moduletree import ModuleNode
 
 
 class TestDotReader(unittest.TestCase):

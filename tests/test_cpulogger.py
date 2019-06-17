@@ -15,7 +15,7 @@
 import os
 import unittest
 
-from pearpoet.cpulogger import CPULog
+from uberpoet.cpulogger import CPULog
 
 
 class TestCPULogger(unittest.TestCase):
