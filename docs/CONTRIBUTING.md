@@ -23,6 +23,15 @@ Small pull requests for things like typos, bug fixes, etc are always welcome.
 * DO keep the discussions focused. When a new or related topic comes up it's often better to create new issue than to side track the discussion.
 * DON'T submit PRs that alter licensing related files or headers. If you believe there's a problem with them, file an issue and we'll be happy to discuss it.
 
+## Basic Getting Started
+
+* On a macOS 10.13 machine, install xcode : `xcode-select --install`
+* Install [pipenv](https://pipenv.readthedocs.io/en/latest/)
+* Clone the repo: `git clone https://github.com/uber/uber-patcher.git`
+* Install dependencies: `pipenv install --dev`
+* Test if your pipenv setup is working by running unit tests: `pipenv run pytest`
+* Edit code with your favorite text editor or IDE!
+
 ## How we Develop
 
 * We used [Visual Studio Code](https://code.visualstudio.com) at first, but then moved to [pycharm](https://www.jetbrains.com/pycharm/) because of it's code inspector, richer refactoring tools and less configuration required to do basic things like testing.  You can use any code editor you would like, but please use PyCharm's [Inspect Code](https://www.jetbrains.com/help/pycharm/running-inspections.html) before you push.
