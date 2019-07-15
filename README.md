@@ -1,5 +1,7 @@
 # Uber Poet
 
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2983/badge)](https://bestpractices.coreinfrastructure.org/projects/2983)
+
 This python app makes mock Xcode Swift app projects with [BUCK](https://buckbuild.com/).  It lets us test different swift module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
 
 * `genproj.py` which generates one app which you have to build manually yourself.  Either with BUCK or `xcodebuild`.
