@@ -7,6 +7,10 @@ This python app makes mock Xcode Swift app projects with [BUCK](https://buckbuil
 
 This app was architected so other languages, graph generators or build systems wouldn't be much work to add.  Theoretically you could extend this app to generate java gradle android apps with the same [dependency graph types](docs/layer_types.md).
 
+## Project Status
+
+This project is stable and being incubated for long-term support.
+
 ## How to Install / Dependencies
 
 With a mac computer that can run macOS 10.13+, install all the dependencies below:
@@ -48,3 +52,11 @@ caffeinate -s pipenv run \
 ## How to Contribute / Develop
 
 Take a look at [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)! 
+
+## Licence
+
+This project is covered by the Apache License, Version 2.0:
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+https://github.com/uber-common/uber-poet/blob/master/LICENSE.txt
