@@ -1,6 +1,7 @@
 # Uber Poet
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2983/badge)](https://bestpractices.coreinfrastructure.org/projects/2983)
+[![Build Status](https://travis-ci.com/uber-common/uber-poet.svg?token=TZiRzWx6Zx4p4Kb4VxAB&branch=master)](https://travis-ci.com/uber-common/uber-poet)
 
 This python app makes mock Xcode Swift app projects with [BUCK](https://buckbuild.com/).  It lets us test different swift module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
 

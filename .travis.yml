@@ -1,7 +1,15 @@
-language: python
 os: osx
-python:
-  - "2.7"
+osx_image: xcode10.2
+language: objective-c
+env:
+  - 'INTEGRATION=1'
+install:
+  - 'brew update'
+  - 'brew install python@2'
+  - 'brew install pipenv'
+  - 'pipenv install --dev'
 script:
-  - flake8
-  - INTEGRATION=1 pytest
+  - 'pipenv run pytest --cov=uberpoet --cov-report xml:cov.xml --cov-report term-missing'
+  - 'pipenv run flake8'
+  - 'pipenv run yapf -rd uberpoet/ test/ *py'
+  - 'pipenv run isort -c'
