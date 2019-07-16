@@ -20,7 +20,7 @@ import os
 import tempfile
 from collections import defaultdict
 from pprint import pprint
-from typing import Dict, List, Set
+from typing import Dict, List, Set  # noqa: F401
 
 from .moduletree import ModuleNode
 from .util import makedir

@@ -1,6 +1,6 @@
 os: osx
 osx_image: xcode10.2
-language: swift
+language: objective-c
 env:
   - 'INTEGRATION=1'
 install:
