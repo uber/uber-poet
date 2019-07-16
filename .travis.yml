@@ -1,12 +1,13 @@
-language: python
-python:
-  - '2.7'
+os: osx
+osx_image: xcode10.2
+language: swift
 env:
   - 'INTEGRATION=1'
 install:
-  - 'pip install pipenv'
+  - 'brew update'
+  - 'brew install python@2'
+  - 'brew install pipenv'
   - 'pipenv install --dev'
 script:
   - 'pipenv run pytest'
   - 'pipenv run flake8'
-  - 'pipenv run yapf'
