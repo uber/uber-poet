@@ -22,6 +22,7 @@ from os.path import join
 import mock
 import testfixtures.popen
 from testfixtures.popen import MockPopen, PopenBehaviour
+
 from uberpoet.genproj import GenProjCommandLine
 from uberpoet.multisuite import CommandLineMultisuite
 
