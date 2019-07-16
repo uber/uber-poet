@@ -21,9 +21,9 @@ from os.path import join
 
 import mock
 import testfixtures.popen
+from testfixtures.popen import MockPopen, PopenBehaviour
 from uberpoet.genproj import GenProjCommandLine
 from uberpoet.multisuite import CommandLineMultisuite
-from testfixtures.popen import MockPopen, PopenBehaviour
 
 from .utils import integration_test, read_file
 
