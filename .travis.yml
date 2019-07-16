@@ -1,7 +1,12 @@
 language: python
-os: osx
 python:
-  - "2.7"
+  - '2.7'
+env:
+  - 'INTEGRATION=1'
+install:
+  - 'pip install pipenv'
+  - 'pipenv install --dev'
 script:
-  - flake8
-  - INTEGRATION=1 pytest
+  - 'pipenv run pytest'
+  - 'pipenv run flake8'
+  - 'pipenv run yapf'
