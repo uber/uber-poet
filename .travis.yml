@@ -9,5 +9,7 @@ install:
   - 'brew install pipenv'
   - 'pipenv install --dev'
 script:
-  - 'pipenv run pytest'
+  - 'pipenv run pytest --cov=uberpoet --cov-report xml:cov.xml --cov-report term-missing'
   - 'pipenv run flake8'
+  - 'pipenv run yapf -rd uberpoet/ test/ *py'
+  - 'pipenv run isort -c'
