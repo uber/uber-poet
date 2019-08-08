@@ -17,14 +17,15 @@
 set -xe
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-APP_GEN="$GIT_ROOT/genproj.py"
 GENPROJ_ROOT="$HOME/Desktop/genproj_out"
 BUILD_LOG_PATH="$GENPROJ_ROOT/mockapp_build_log.txt"
 PROJECT_OUT="$GENPROJ_ROOT/mockapp"
 
 xcodebuild -version
+pipenv install
 
-"$APP_GEN" --output_directory "$PROJECT_OUT" \
+pipenv run $GIT_ROOT/genproj.py \
+           --output_directory "$PROJECT_OUT" \
            --buck_module_path "/mockapp" \
            --gen_type flat \
            --lines_of_code 150000

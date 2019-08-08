@@ -29,11 +29,17 @@ With a mac computer that can run macOS 10.13+, install all the dependencies belo
 * Optional:  [cloc (Count Lines Of Code)](https://github.com/AlDanial/cloc)
     * Install with [homebrew](https://brew.sh): `brew install cloc`
 
-Then download this project into a folder and run `genproj.py` or `multisuite.py` via the Terminal app.
+Then:
+
+* Download / git clone this project into a folder.
+* Run `pipenv install` to install the required python dependencies.
+* If you want to run unit tests or develop for this app, make sure to run `pipenv install --dev`
 
 ## How to Use
 
-See `./genproj.py -h` or `./mulisuite.py -h` for general help.  Also take a look at the shell scripts in [examples/](examples/) to see examples on how to use these command line programs.
+After installing all required dependencies:
+
+See `pipenv run ./genproj.py -h` or `pipenv run ./mulisuite.py -h` for general help.  Also take a look at the shell scripts in [examples/](examples/) to see examples on how to use these command line programs.
 
 Here a few quick examples:
 
