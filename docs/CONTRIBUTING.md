@@ -28,8 +28,9 @@ Small pull requests for things like typos, bug fixes, etc are always welcome.
 * On a macOS 10.13 machine, install xcode : `xcode-select --install`
 * Install [pipenv](https://pipenv.readthedocs.io/en/latest/)
 * Clone the repo: `git clone https://github.com/uber/uber-patcher.git`
-* Install dependencies: `pipenv install --dev`
+* Install python dependencies: `pipenv install --dev`
 * Test if your pipenv setup is working by running unit tests: `pipenv run pytest`
+    * You can also run longer running integration tests with `INTEGRATION=1 pipenv run pytest`
 * Edit code with your favorite text editor or IDE!
 
 ## How we Develop

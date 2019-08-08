@@ -17,11 +17,12 @@
 set -xe
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-APP_GEN="$GIT_ROOT/multisuite.py"
+
+pipenv install
 
 # You usually want to use `caffeinate` to prevent your computer from going to sleep during
 # a multi hour build test suite.
-caffeinate -s "$APP_GEN" \
+caffeinate -s pipenv run $GIT_ROOT/multisuite.py \
 --log_dir "$HOME/Desktop/multisuite_build_results" \
 --app_gen_output_dir "$HOME/Desktop/multisuite_build_results/app_gen" \
 --test_build_only \
