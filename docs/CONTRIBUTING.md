@@ -43,9 +43,21 @@ Tools used for managing the code base:
 * yapf for formatting
 * isort for sorting imports
 * flake8 & pylint for linting
-* PyCharm's "[Inspect Code](https://www.jetbrains.com/help/pycharm/running-inspections.html)" tool
+* PyCharm's "[Inspect Code](https://www.jetbrains.com/help/pycharm/running-inspections.html)" tool  (not enforced by ci since it's difficult to use via command line)
 * pipenv to manage application dependencies
-* Tool configuration is kept in the `setup.cfg` file. Please use that as you develop.  
+* Tool configuration is kept in the `setup.cfg` file. Please use that as you develop.
+
+I would suggest running the dev tool versions that come with the repo, to avoid issues with travis CI not passing.  Look at the [.travis.yml](../.travis.yml) to see what commands it executes.  The versions they execute although are not ones that would actually update your code to automatically fix them, so a general pre-commit workflow would be:
+
+```bash
+pipenv install --dev  #only need to run this once
+INTEGRATION=1 pipenv run pytest --cov=uberpoet --cov-report xml:cov.xml --cov-report term-missing  #fix failing tests
+pipenv run yapf -ri uberpoet/ test/ *py  # -r = recursive , -i = in-place
+pipenv run isort # isort fixes in place by default
+pipenv run flake8 # manually fix any issues the flake8 linter brings up
+```
+
+Make sure to check the [.travis.yml](../.travis.yml) file to see what is actually run in case this file is out of date.
 
 ## Basic App Architecture
 
