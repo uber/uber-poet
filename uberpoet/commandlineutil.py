@@ -59,38 +59,41 @@ class AppGenerationConfig(object):
     @staticmethod
     def add_app_gen_options(parser):
         app = parser.add_argument_group('Mock app generation options')
-        app.add_argument('--module_count',
-                         default=100,
-                         type=int,
-                         help="How many modules should be in a normal mock app type."),
-        app.add_argument('--big_module_count',
-                         default=3,
-                         type=int,
-                         help="How many big modules should be in a big/small mock app type."),
-        app.add_argument('--small_module_count',
-                         default=50,
-                         type=int,
-                         help="How many small modules should be in a big/small mock app type."),
+        app.add_argument(
+            '--module_count', default=100, type=int, help="How many modules should be in a normal mock app type."),
+        app.add_argument(
+            '--big_module_count',
+            default=3,
+            type=int,
+            help="How many big modules should be in a big/small mock app type."),
+        app.add_argument(
+            '--small_module_count',
+            default=50,
+            type=int,
+            help="How many small modules should be in a big/small mock app type."),
         app.add_argument(
             '--lines_of_code',
             default=1500000,  # 1.5 million lines of code
             type=int,
             help="Approximately how many lines of code each mock app should be."),
-        app.add_argument('--app_layer_count',
-                         default=10,
-                         type=int,
-                         help='How many module layers there should be in the layered mock app type.')
+        app.add_argument(
+            '--app_layer_count',
+            default=10,
+            type=int,
+            help='How many module layers there should be in the layered mock app type.')
 
         dot = parser.add_argument_group('Dot file mock app config')
-        dot.add_argument('--dot_file_path',
-                         default='',
-                         type=str,
-                         help="The path to the dot file to create a mock module graph from.  This dot file should come "
-                         "from a buck query like so: `buck query \"deps(target)\" --dot > file.gv`.")
-        dot.add_argument('--dot_root_node_name',
-                         default='',
-                         type=str,
-                         help="The name of the root application node of the dot file, such as 'App'")
+        dot.add_argument(
+            '--dot_file_path',
+            default='',
+            type=str,
+            help="The path to the dot file to create a mock module graph from.  This dot file should come "
+            "from a buck query like so: `buck query \"deps(target)\" --dot > file.gv`.")
+        dot.add_argument(
+            '--dot_root_node_name',
+            default='',
+            type=str,
+            help="The name of the root application node of the dot file, such as 'App'")
 
     @staticmethod
     def validate_app_gen_options(args):

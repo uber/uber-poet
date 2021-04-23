@@ -51,10 +51,11 @@ class GenProjCommandLine(object):
             required=True,
             choices=ModuleGenType.enum_list(),
             help='What kind of mock app generation you want.  See layer_types.md for a description of graph types.')
-        parser.add_argument('-wmo',
-                            '--use_wmo',
-                            default=False,
-                            help='Wether or not to use whole module optimization when building swift modules.')
+        parser.add_argument(
+            '-wmo',
+            '--use_wmo',
+            default=False,
+            help='Wether or not to use whole module optimization when building swift modules.')
         parser.add_argument(
             '--print_dependency_graph',
             default=False,

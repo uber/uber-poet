@@ -44,23 +44,22 @@ class CommandLineMultisuite(object):
             'Useful as a benchmark suite to compare build performance of different computers.')
 
         parser.add_argument('--log_dir', default=log_root, help="Where logs such as build times should exist."),
-        parser.add_argument('--app_gen_output_dir',
-                            default=tmp_root,
-                            help="Where generated mock apps should be outputted to."),
+        parser.add_argument(
+            '--app_gen_output_dir', default=tmp_root, help="Where generated mock apps should be outputted to."),
         parser.add_argument('--buck_command', default='buck', help="The path to the buck binary.  Defaults to `buck`."),
 
         commandlineutil.AppGenerationConfig.add_app_gen_options(parser)
 
         actions = parser.add_argument_group('Extra Actions')
-        actions.add_argument('--trace_cpu',
-                             action='store_true',
-                             default=False,
-                             help="If we should add cpu utilization to build traces."),
-        actions.add_argument('--switch_xcode_versions',
-                             action='store_true',
-                             default=False,
-                             help="Switch Xcode verions as part of the full multisuite test. This will search your "
-                             "`/Applications` directory for xcode.app bundles to build with. Requires sudo."),
+        actions.add_argument(
+            '--trace_cpu', action='store_true', default=False,
+            help="If we should add cpu utilization to build traces."),
+        actions.add_argument(
+            '--switch_xcode_versions',
+            action='store_true',
+            default=False,
+            help="Switch Xcode verions as part of the full multisuite test. This will search your "
+            "`/Applications` directory for xcode.app bundles to build with. Requires sudo."),
         actions.add_argument(
             '--full_clean',
             action='store_true',
@@ -75,15 +74,17 @@ class CommandLineMultisuite(object):
             help='The project generator type to use. Supported types are BUCK and CocoaPods. Default is BUCK')
 
         testing = parser.add_argument_group('Testing Shortcuts')
-        testing.add_argument('--skip_xcode_build',
-                             action='store_true',
-                             default=False,
-                             help="Skips building the mock apps.  Useful for speeding up testing and making "
-                             "integration tests independent of non-python dependencies."),
-        testing.add_argument('--test_build_only',
-                             action='store_true',
-                             default=False,
-                             help="Only builds a small flat build type to create short testing loops."),
+        testing.add_argument(
+            '--skip_xcode_build',
+            action='store_true',
+            default=False,
+            help="Skips building the mock apps.  Useful for speeding up testing and making "
+            "integration tests independent of non-python dependencies."),
+        testing.add_argument(
+            '--test_build_only',
+            action='store_true',
+            default=False,
+            help="Only builds a small flat build type to create short testing loops."),
 
         out = parser.parse_args(args)
         commandlineutil.AppGenerationConfig.validate_app_gen_options(out)
@@ -190,7 +191,7 @@ class CommandLineMultisuite(object):
             if self.project_generator_type == "buck":
                 subprocess.check_call([self.buck_binary, 'project', self.app_buck_path, '-d'])
             elif self.project_generator_type == "cocoapods":
-                owd=os.getcwd()
+                owd = os.getcwd()
                 os.chdir(self.mock_output_dir)
                 subprocess.check_call(['pod', 'install'])
                 os.chdir(owd)
@@ -227,9 +228,8 @@ class CommandLineMultisuite(object):
         self.build_time_file.write(log_statement)
         self.build_time_file.flush()
         full_xcode_version = xcode_version + " " + xcode_build_id
-        self.build_time_csv_file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(build_end, gen_type, full_xcode_version,
-                                                                             wmo_enabled, total_time, len(node_list),
-                                                                             swift_loc))
+        self.build_time_csv_file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(
+            build_end, gen_type, full_xcode_version, wmo_enabled, total_time, len(node_list), swift_loc))
         self.build_time_csv_file.flush()
 
     def verify_dependencies(self):
