@@ -1,4 +1,4 @@
-#  Copyright (c) 2018 Uber Technologies, Inc.
+#  Copyright (c) 2021 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,15 +25,15 @@ from .moduletree import ModuleNode
 from .util import first_in_dict, first_key, makedir
 
 
-class BuckProjectGenerator(object):
+class CocoaPodsProjectGenerator(object):
     DIR_NAME = dirname(__file__)
     RESOURCE_DIR = join(DIR_NAME, "resources")
 
-    def __init__(self, app_root, buck_app_root, use_wmo=False):
+    def __init__(self, app_root, use_wmo=False):
         self.app_root = app_root
-        self.buck_app_root = buck_app_root
-        self.bzl_lib_template = self.load_resource("mocklibtemplate.bzl")
-        self.bzl_app_template = self.load_resource("mockapptemplate.bzl")
+        self.pod_lib_template = self.load_resource("mocklibtemplate.podspec")
+        self.pod_app_template = self.load_resource("mockapptemplate.podspec")
+        self.podfile_template = self.load_resource("mockpodfile")
         self.swift_gen = SwiftFileGenerator()
         self.use_wmo = use_wmo
         self.swift_file_size_loc = None
@@ -63,12 +63,12 @@ class BuckProjectGenerator(object):
 
     @staticmethod
     def load_resource(name):
-        with open(join(BuckProjectGenerator.RESOURCE_DIR, name), "r") as f:
+        with open(join(CocoaPodsProjectGenerator.RESOURCE_DIR, name), "r") as f:
             return f.read()
 
     @staticmethod
     def copy_resource(name, dest):
-        origin = join(BuckProjectGenerator.RESOURCE_DIR, name)
+        origin = join(CocoaPodsProjectGenerator.RESOURCE_DIR, name)
         shutil.copyfile(origin, dest)
 
     @staticmethod
@@ -77,15 +77,17 @@ class BuckProjectGenerator(object):
             f.write(text)
 
     @staticmethod
-    def make_list_str(items):
-        return (",\n" + (" " * 8)).join(items)
+    def make_list_str(items, padding=8):
+        return ("\n" + (" " * padding)).join(items)
 
     def make_dep_list(self, items):
-        return self.make_list_str(["'/{0}/{1}:{1}'".format(self.buck_app_root, i) for i in items])
+        return self.make_list_str(["s.dependency '{0}'".format(i) for i in items])
 
-    def make_scheme_list(self, items):
-        return self.make_list_str(
-            ["{2: <20} :'/{0}/{1}:{1}Scheme'".format(self.buck_app_root, i, "'{}'".format(i)) for i in items])
+    def make_podfile_dep_list(self, items):
+        return self.make_list_str(["pod '{0}', :path => '{0}/{0}.podspec'".format(i) for i in items], 4)
+
+    def example_command(self):
+        return "pod install"
 
     # Generation Functions
 
@@ -104,7 +106,8 @@ class BuckProjectGenerator(object):
 
         app_files = {
             "main.swift": self.gen_app_main(app_node, module_index),
-            "BUCK": self.gen_app_buck(app_node, library_node_list),
+            "dummy.swift": "",
+            "AppContainer.podspec": self.gen_app_podspec(app_node, library_node_list),
         }
 
         self.copy_resource("Info.plist", join(app_module_dir, "Info.plist"))
@@ -112,10 +115,13 @@ class BuckProjectGenerator(object):
         for name, text in app_files.iteritems():
             self.write_file(join(app_module_dir, name), text)
 
-    def gen_app_buck(self, node, all_nodes):
+        podfile_text = self.gen_podfile(library_node_list)
+        podfile_path = join(self.app_root, "Podfile")
+        self.write_file(podfile_path, podfile_text)
+
+    def gen_app_podspec(self, node, all_nodes):
         module_dep_list = self.make_dep_list([i.name for i in node.deps])
-        module_scheme_list = self.make_scheme_list([i.name for i in all_nodes])
-        return self.bzl_app_template.format(module_scheme_list, module_dep_list, self.wmo_state)
+        return self.pod_app_template.format(module_dep_list, self.wmo_state)
 
     def gen_app_main(self, app_node, module_index):
         importing_module_name = app_node.deps[0].name
@@ -128,9 +134,9 @@ class BuckProjectGenerator(object):
     # Library Generation
 
     def gen_lib_module(self, module_node, loc_per_unit):
-        # Make BUCK Text
+        # Make Podspec Text
         deps = self.make_dep_list([i.name for i in module_node.deps])
-        buck_text = self.bzl_lib_template.format(module_node.name, deps, self.wmo_state)
+        pod_text = self.pod_lib_template.format(module_node.name, deps, self.wmo_state)
 
         # Make Swift Text
         file_count = (loc_per_unit * module_node.code_units) / self.swift_file_size_loc
@@ -144,9 +150,9 @@ class BuckProjectGenerator(object):
         makedir(module_dir_path)
         makedir(files_dir_path)
 
-        # Write BUCK File
-        buck_path = join(module_dir_path, "BUCK")
-        self.write_file(buck_path, buck_text)
+        # Write podspec File
+        pod_path = join(module_dir_path, "{0}.podspec".format(module_node.name))
+        self.write_file(pod_path, pod_text)
 
         # Write Swift Files
         for file_name, file_obj in files.iteritems():
@@ -157,3 +163,10 @@ class BuckProjectGenerator(object):
         module_node.extra_info = files
 
         return files
+
+    # Podfile Generation
+
+    def gen_podfile(self, all_nodes):
+        podfile_module_dep_list = self.make_podfile_dep_list([i.name for i in all_nodes])
+        return self.podfile_template.format(
+            "pod 'AppContainer', :path => 'App/AppContainer.podspec', :appspecs => ['App']", podfile_module_dep_list)

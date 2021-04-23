@@ -25,7 +25,7 @@ Small pull requests for things like typos, bug fixes, etc are always welcome.
 
 ## Basic Getting Started
 
-* On a macOS 10.13 machine, install xcode : `xcode-select --install`
+* On a macOS 10.13 machine, install Xcode : `xcode-select --install`
 * Install [pipenv](https://pipenv.readthedocs.io/en/latest/)
 * Clone the repo: `git clone https://github.com/uber/uber-patcher.git`
 * Install python dependencies: `pipenv install --dev`
@@ -103,6 +103,6 @@ Most variation & configuration resides in the graph objects that the graph gener
 
 `GenProjCommandLine` from `genproj.py` is the UI that the user's configuration for generating a mock app is passed into the above process.
 
-`CommandLineMultisuite` from `multisuite.py`, does the same thing as `genproj.py`, but with a list of project generators, and builds these projects and records the build times.   It also gives you configuration options in how building is done.  Multisuite also uses code in `statementmanagement.py` & `cpulogger.py` to help it manage xcode build configuration and track CPU usage.
+`CommandLineMultisuite` from `multisuite.py`, does the same thing as `genproj.py`, but with a list of project generators, and builds these projects and records the build times.  It also gives you configuration options in how building is done.  Multisuite also uses code in `statementmanagement.py` & `cpulogger.py` to help it manage Xcode build configuration and track CPU usage.
 
 `dotreader.py` is used to generate dependency graphs from dot files.

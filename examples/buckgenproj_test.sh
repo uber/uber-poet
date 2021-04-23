@@ -17,7 +17,7 @@
 set -xe
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-GENPROJ_ROOT="$HOME/Desktop/genproj_out"
+GENPROJ_ROOT="$HOME/Desktop/buckgenproj_out"
 BUILD_LOG_PATH="$GENPROJ_ROOT/mockapp_build_log.txt"
 PROJECT_OUT="$GENPROJ_ROOT/mockapp"
 
