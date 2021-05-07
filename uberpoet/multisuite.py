@@ -174,7 +174,8 @@ class CommandLineMultisuite(object):
 
         logging.info('Generating mock app')
         app_node, node_list = commandlineutil.gen_graph(gen_type, self.app_gen_options)
-        self.project_generator.gen_app(app_node, node_list, self.app_gen_options.lines_of_code)
+        self.project_generator.gen_app(app_node, node_list, self.app_gen_options.lines_of_code,
+                                       self.app_gen_options.loc_json_file_path)
 
         swift_loc = commandlineutil.count_loc(self.mock_output_dir)
         logging.info('App type "%s" generated %d loc', gen_type, swift_loc)

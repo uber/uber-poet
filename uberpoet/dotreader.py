@@ -29,17 +29,17 @@ from .util import makedir
 class DotFileReader(object):
     """
     This class reads a dot file from a `buck query "deps(target)" --dot > file.gv` output
-    and translates it into a `ModuleNode` dependency graph for the `BuckProjectGenerator` class
+    and translates it into a `ModuleNode` dependency graph for the generator class
     to consume.  The entry point is `DotFileReader().read_dot_file(path)`
 
-    Why make our own dot file parser vs using the two other python libaries available?  They're
+    Why make our own dot file parser vs using the two other python libraries available?  They're
     really slow.  Probably because of some extra stuff we don't do.
     """
 
     def __init__(self, modules_filter=None):
         # type: (List[str]) -> None
         """
-        Initalizes object.
+        Initializes object.
 
         :param modules_filter: If a graph edge contains a string inside the list as a substring, it is ignored.
         Keep it empty to not filter out anything.  If not specified, a default list of test names are used.
@@ -49,7 +49,7 @@ class DotFileReader(object):
             # We are trying to simulate a non-test app build and ignore non-code targets such as asset
             # catalogs and schemes. Each module currently gets a static amount of code created for it,
             # so non-code modules will add code to the total when they shouldn't if we didn't filter them out.
-            modules_filter = ['test', 'scheme', 'assetcatalog', 'resources', 'fixture', 'needle']
+            modules_filter = ['test', 'scheme', 'assetcatalog', 'resources', 'fixture', 'needle', 'assets']
         self.modules_filter = modules_filter
 
     def read_dot_file(self, path, root_node_name, is_debug=False):
