@@ -29,7 +29,7 @@ from uberpoet.multisuite import CommandLineMultisuite
 from .utils import integration_test, read_file
 
 
-class TestIntegration(unittest.TestCase):
+class TestBuckIntegration(unittest.TestCase):
 
     def verify_genproj(self, lib_name, mod_count, app_path):
         main_path = join(app_path, 'App')
@@ -84,6 +84,22 @@ class TestIntegration(unittest.TestCase):
         command.main(args)
 
         self.verify_genproj('DotReaderLib17', 338, app_path)
+
+    @integration_test
+    def test_dot_genproj_with_loc_mappings(self):
+        app_path = join(tempfile.gettempdir(), 'apps', 'mockapp')
+
+        test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_dot.gv')
+        loc_test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'loc_mappings.json')
+        args = [
+            "--output_directory", app_path, "--buck_module_path", "/apps/mockapp", "--gen_type", "dot",
+            "--dot_file", test_fixture_path, "--dot_root", "DotReaderMainModule",
+            "--loc_json_file_path", loc_test_fixture_path
+        ]
+        command = GenProjCommandLine()
+        command.main(args)
+
+        self.verify_genproj('DotReaderLib17', 339, app_path)
 
     @integration_test
     def test_flat_multisuite(self):

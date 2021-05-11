@@ -55,7 +55,7 @@ class GenProjCommandLine(object):
             '-wmo',
             '--use_wmo',
             default=False,
-            help='Wether or not to use whole module optimization when building swift modules.')
+            help='Whether or not to use whole module optimization when building swift modules.')
         parser.add_argument(
             '--print_dependency_graph',
             default=False,
@@ -67,7 +67,10 @@ class GenProjCommandLine(object):
 
         return args
 
-    def main(self, args=sys.argv[1:]):
+    def main(self, args=None):
+        if args is None:
+            args = sys.argv[1:]
+
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
         start = time.time()
 
@@ -88,7 +91,7 @@ class GenProjCommandLine(object):
         logging.info("Generation type: %s", args.gen_type)
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
         logging.info("Example command to generate Xcode workspace: $ {}".format(gen.example_command()))
-        gen.gen_app(app_node, node_list, graph_config.lines_of_code)
+        gen.gen_app(app_node, node_list, graph_config.lines_of_code, graph_config.loc_json_file_path)
 
         fin = time.time()
         logging.info("Done in %f s", fin - start)
@@ -97,13 +100,13 @@ class GenProjCommandLine(object):
 def print_nodes(node_list):
     edges = [(node.name, dep.name) for node in node_list for dep in node.deps]
     for edge in edges:
-        print edge[0], edge[1]
+        print(edge[0], edge[1])
 
 
 def project_generator_for_arg(args):
     if args.project_generator_type == 'buck':
         if not args.buck_module_path:
-            raise ValueError("Must supply --buck_module_path when usign the BUCK generator.")
+            raise ValueError("Must supply --buck_module_path when using the BUCK generator.")
         return buckprojectgen.BuckProjectGenerator(args.output_directory, args.buck_module_path, use_wmo=args.use_wmo)
     elif args.project_generator_type == 'cocoapods':
         return cpprojectgen.CocoaPodsProjectGenerator(args.output_directory, use_wmo=args.use_wmo)

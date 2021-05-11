@@ -37,7 +37,8 @@ class AppGenerationConfig(object):
                  lines_of_code=0,
                  app_layer_count=0,
                  dot_file_path='',
-                 dot_root_node_name=''):
+                 dot_root_node_name='',
+                 loc_json_file_path=''):
         self.module_count = module_count
         self.big_module_count = big_module_count
         self.small_module_count = small_module_count
@@ -45,6 +46,7 @@ class AppGenerationConfig(object):
         self.app_layer_count = app_layer_count
         self.dot_file_path = dot_file_path
         self.dot_root_node_name = dot_root_node_name
+        self.loc_json_file_path = loc_json_file_path
 
     def pull_from_args(self, args):
         self.validate_app_gen_options(args)
@@ -55,6 +57,7 @@ class AppGenerationConfig(object):
         self.app_layer_count = args.app_layer_count
         self.dot_file_path = args.dot_file_path
         self.dot_root_node_name = args.dot_root_node_name
+        self.loc_json_file_path = args.loc_json_file_path
 
     @staticmethod
     def add_app_gen_options(parser):
@@ -87,19 +90,31 @@ class AppGenerationConfig(object):
             '--dot_file_path',
             default='',
             type=str,
-            help="The path to the dot file to create a mock module graph from.  This dot file should come "
-            "from a buck query like so: `buck query \"deps(target)\" --dot > file.gv`.")
+            help="The path to the dot file to create a mock module graph from.  This dot file for Buck can be "
+            "created like so: `buck query \"deps(target)\" --dot > file.gv`.  Alternatively, you may use your own"
+            "means to generate it for different project types.")
         dot.add_argument(
             '--dot_root_node_name',
             default='',
             type=str,
-            help="The name of the root application node of the dot file, such as 'App'")
+            help="The name of the root application node of the dot file, such as 'App'.")
+        parser.add_argument(
+            '--loc_json_file_path',
+            default='',
+            type=str,
+            help="A JSON file used to provide module LOC data.  Only used when dot graph type is used to create "
+            "modules with proportional LOC.  You may generate this file using `cloc` or another tool like `tokei`."
+            "  The format of the file is expected to contain each module name as a key with a value denoting the LOC.")
 
     @staticmethod
     def validate_app_gen_options(args):
         if bool_xor(args.dot_file_path, args.dot_root_node_name):
             logging.info('dot_file_path: "%s" dot_root_node_name: "%s"', args.dot_file_path, args.dot_root_node_name)
-            raise ValueError('If you specify a dot file config option, you also have to specify the other one')
+            raise ValueError('If you specify a dot file config option, you must also specify a root node name using '
+                             '\"dot_root_node_name\".')
+        if args.loc_json_file_path and args.gen_type != ModuleGenType.dot:
+            logging.info('loc_json_file_path: "%s"', args.loc_json_file_path)
+            raise ValueError('If you specify \"loc_json_file_path\", you must also specify a dot graph style.')
 
 
 def gen_graph(gen_type, config):

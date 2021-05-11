@@ -17,8 +17,9 @@ from __future__ import absolute_import
 import logging
 import shutil
 import tempfile
-from os.path import dirname, join
+from os.path import basename, dirname, join
 
+from . import locreader
 from .commandlineutil import count_loc
 from .filegen import SwiftFileGenerator
 from .moduletree import ModuleNode
@@ -92,15 +93,22 @@ class BuckProjectGenerator(object):
 
     # Generation Functions
 
-    def gen_app(self, app_node, node_list, target_loc):
+    def gen_app(self, app_node, node_list, target_loc, loc_json_file_path):
         library_node_list = [n for n in node_list if n.node_type == ModuleNode.LIBRARY]
 
-        total_code_units = 0
-        for l in library_node_list:
-            total_code_units += l.code_units
+        if loc_json_file_path:
+            loc_reader = locreader.LocFileReader()
+            loc_reader.read_loc_file(loc_json_file_path)
+            module_index = {
+                n.name: self.gen_lib_module(n, loc_reader.loc_for_module(n.name)) for n in library_node_list
+            }
+        else:
+            total_code_units = 0
+            for l in library_node_list:
+                total_code_units += l.code_units
 
-        loc_per_unit = target_loc / total_code_units
-        module_index = {n.name: self.gen_lib_module(n, loc_per_unit) for n in library_node_list}
+            loc_per_unit = target_loc / total_code_units
+            module_index = {n.name: self.gen_lib_module(n, loc_per_unit) for n in library_node_list}
 
         app_module_dir = join(self.app_root, "App")
         makedir(app_module_dir)
@@ -114,6 +122,10 @@ class BuckProjectGenerator(object):
 
         for name, text in app_files.iteritems():
             self.write_file(join(app_module_dir, name), text)
+
+        if loc_json_file_path:
+            # Copy the LOC file into the generated project.
+            shutil.copyfile(loc_json_file_path, join(self.app_root, basename(loc_json_file_path)))
 
     def gen_app_buck(self, node, all_nodes):
         module_dep_list = self.make_dep_list([i.name for i in node.deps])
@@ -136,9 +148,10 @@ class BuckProjectGenerator(object):
         buck_text = self.bzl_lib_template.format(module_node.name, deps, self.wmo_state)
 
         # Make Swift Text
-        file_count = (loc_per_unit * module_node.code_units) / self.swift_file_size_loc
+        file_count = (max(self.swift_file_size_loc, loc_per_unit) * module_node.code_units) / self.swift_file_size_loc
         if file_count < 1:
-            raise ValueError("Lines of code count is too small for the module to fit one file, increase it.")
+            raise ValueError("Lines of code count is too small for the module {} to fit one file, increase it.".format(
+                module_node.name))
         files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(file_count)}
 
         # Make Module Directories
