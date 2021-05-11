@@ -1,0 +1,40 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python application
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+    env: 
+      INTEGRATION: 1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 2.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 2.7
+    - name: Install development dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pipenv
+        pipenv install --dev
+    - name: Lint with flake8
+      run: |
+        pipenv run flake8
+    - name: Test formatting compliance with yapf
+      run: |
+        pipenv run yapf -rd uberpoet/ test/ *py
+    - name: Test that isort was run
+      run: |
+        pipenv run isort -c
+    - name: Run pytest
+      run: |
+        pipenv run pytest --cov=uberpoet --cov-report xml:cov.xml --cov-report term-missing
