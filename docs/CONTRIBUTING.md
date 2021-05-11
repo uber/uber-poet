@@ -25,7 +25,7 @@ Small pull requests for things like typos, bug fixes, etc are always welcome.
 
 ## Basic Getting Started
 
-* On a macOS 10.13 machine, install Xcode : `xcode-select --install`
+* On a macOS 10.13+ machine, install Xcode : `xcode-select --install`
 * Install [pipenv](https://pipenv.readthedocs.io/en/latest/)
 * Clone the repo: `git clone https://github.com/uber/uber-patcher.git`
 * Install python dependencies: `pipenv install --dev`
@@ -47,13 +47,13 @@ Tools used for managing the code base:
 * pipenv to manage application dependencies
 * Tool configuration is kept in the `setup.cfg` file. Please use that as you develop.
 
-I would suggest running the dev tool versions that come with the repo, to avoid issues with travis CI not passing.  Look at the [.travis.yml](../.travis.yml) to see what commands it executes.  The versions they execute although are not ones that would actually update your code to automatically fix them, so a general pre-commit workflow would be:
+I would suggest running the dev tool versions that come with the repo, to avoid issues with github actions CI not passing.  Look at the [github actions yaml](../.github/workflows/python-app.yml) to see what commands it executes.  The versions they execute although are not ones that would actually update your code to automatically fix them, so a general pre-commit workflow would be:
 
 ```bash
 pipenv install --dev  #only need to run this once
 INTEGRATION=1 pipenv run pytest --cov=uberpoet --cov-report xml:cov.xml --cov-report term-missing  #fix failing tests
-pipenv run yapf -ri uberpoet/ test/ *py  # -r = recursive , -i = in-place
-pipenv run isort # isort fixes in place by default
+pipenv run yapf -ri uberpoet/ test/ *py  # -r = recursive , -i = in-place, yapf is an autoformatter
+pipenv run isort # isort fixes in place by default, isort = import sort
 pipenv run flake8 # manually fix any issues the flake8 linter brings up
 ```
 
