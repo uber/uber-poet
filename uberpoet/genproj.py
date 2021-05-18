@@ -19,7 +19,7 @@ import logging
 import sys
 import time
 
-from . import buckprojectgen, commandlineutil, cpprojectgen
+from . import blazeprojectgen, commandlineutil, cpprojectgen
 from .moduletree import ModuleGenType
 
 
@@ -36,15 +36,15 @@ class GenProjCommandLine(object):
         parser.add_argument(
             '-pgt',
             '--project_generator_type',
-            choices=['buck', 'cocoapods'],
+            choices=['buck', 'bazel', 'cocoapods'],
             default='buck',
             required=False,
-            help='The project generator type to use. Supported types are BUCK and CocoaPods. Default is BUCK')
+            help='The project generator type to use.  Supported types are Buck, Bazel and CocoaPods. Default is `buck`')
         parser.add_argument(
             '-bmp',
-            '--buck_module_path',
-            help='The root of the BUCK dependency path of the generated code. Only used if BUCK generator type is used.'
-        )
+            '--blaze_module_path',
+            help='The root of the Buck or Bazel dependency path of the generated code.  Only used if Buck or Bazel '
+            'generator type is used.')
         parser.add_argument(
             '-gt',
             '--gen_type',
@@ -104,10 +104,11 @@ def print_nodes(node_list):
 
 
 def project_generator_for_arg(args):
-    if args.project_generator_type == 'buck':
-        if not args.buck_module_path:
-            raise ValueError("Must supply --buck_module_path when using the BUCK generator.")
-        return buckprojectgen.BuckProjectGenerator(args.output_directory, args.buck_module_path, use_wmo=args.use_wmo)
+    if args.project_generator_type == 'buck' or args.project_generator_type == 'bazel':
+        if not args.blaze_module_path:
+            raise ValueError("Must supply --blaze_module_path when using the Buck or Bazel generators.")
+        return blazeprojectgen.BlazeProjectGenerator(
+            args.output_directory, args.blaze_module_path, use_wmo=args.use_wmo, flavor=args.project_generator_type)
     elif args.project_generator_type == 'cocoapods':
         return cpprojectgen.CocoaPodsProjectGenerator(args.output_directory, use_wmo=args.use_wmo)
     else:

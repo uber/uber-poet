@@ -3,9 +3,10 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2983/badge)](https://bestpractices.coreinfrastructure.org/projects/2983)
 [![Build Status](https://travis-ci.com/uber-common/uber-poet.svg?token=TZiRzWx6Zx4p4Kb4VxAB&branch=master)](https://travis-ci.com/uber-common/uber-poet)
 
-This python app makes mock Xcode Swift app projects with [BUCK](https://buckbuild.com/) and [CocoaPods](https://cocoapods.org).  It lets us test different Swift module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
+This python app makes mock Xcode Swift app projects with [Buck](https://buckbuild.com/), [Bazel](https://bazel.build/)
+and [CocoaPods](https://cocoapods.org).  It lets us test different Swift module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
 
-* `genproj.py` which generates one app which you have to build manually yourself.  Either with BUCK or `xcodebuild`.
+* `genproj.py` which generates one app which you have to build manually yourself.  Either with `buck`, `bazel` or `xcodebuild`.
 * `multisuite.py`, which generates all module configs, builds them, records how long they take to build into a CSV and outputs it's results to a directory passed in the command line.  Essentially a benchmark test suite.  Can take several hours to run depending how many lines of code each app takes.
 
 This app was architected so other languages, graph generators or build systems wouldn't be much work to add.  Theoretically you could extend this app to generate java gradle android apps with the same [dependency graph types](docs/layer_types.md).
@@ -29,8 +30,10 @@ With a mac computer that can run macOS 10.13+, install all the dependencies belo
 
 Depending on which project generator you plan to use, you will need to install at least one of the following:
 
-* [BUCK](https://buckbuild.com/)
+* [Buck](https://buckbuild.com/)
     * [Install instructions](https://buckbuild.com/setup/getting_started.html)
+* [Bazel](https://bazel.build/)
+    * [Install instructions](https://docs.bazel.build/bazel-overview.html)
 * [CocoaPods](https://cocoapods.org/)
     * [Install instructions](https://cocoapods.org/#get_started)
 
@@ -48,13 +51,25 @@ See `pipenv run ./genproj.py -h` or `pipenv run ./mulisuite.py -h` for general h
 
 Here a few quick examples:
 
+Generate a project using Buck:
 ```bash
 pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
-                        --buck_module_path "/mockapp" \
+                        --project_generator_type "buck" \
+                        --blaze_module_path "/mockapp" \
                         --gen_type flat \
                         --lines_of_code 150000
 ```
 
+Generate a project using Bazel:
+```bash
+pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
+                        --project_generator_type "bazel" \
+                        --blaze_module_path "/mockapp" \
+                        --gen_type flat \
+                        --lines_of_code 150000
+```
+
+Generate a project using CocoaPods:
 ```bash
 pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
                         --project_generator_type "cocoapods" \
@@ -84,9 +99,14 @@ pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
 Examples on how to generate a `dot` file:
 
 
-Using BUCK:
+Using Buck:
 ```
 buck query \"deps(target)\" --dot > file.gv
+```
+
+Using Bazel:
+```
+bazel query "deps(target)" --output graph > graph.in
 ```
 
 Using CocoaPods:

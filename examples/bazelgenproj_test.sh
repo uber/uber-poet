@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#  Copyright (c) 2018 Uber Technologies, Inc.
+#  Copyright (c) 2021 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 set -xe
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-GENPROJ_ROOT="$HOME/Desktop/buckgenproj_out"
+GENPROJ_ROOT="$HOME/Desktop/bazelgenproj_out"
 BUILD_LOG_PATH="$GENPROJ_ROOT/mockapp_build_log.txt"
 PROJECT_OUT="$GENPROJ_ROOT/mockapp"
 
@@ -26,10 +26,10 @@ pipenv install
 
 pipenv run $GIT_ROOT/genproj.py \
            --output_directory "$PROJECT_OUT" \
+           --project_generator_type "bazel" \
            --blaze_module_path "/mockapp" \
            --gen_type flat \
            --lines_of_code 150000
 
-MOCK_WORKSPACE_PATH="$PROJECT_OUT/App/App.xcworkspace"
 cd "$PROJECT_OUT"
-time buck build "//..." > "$BUILD_LOG_PATH"
+time bazel build "//..." --incompatible_require_linker_input_cc_api=false > "$BUILD_LOG_PATH"

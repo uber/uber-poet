@@ -26,17 +26,18 @@ from .moduletree import ModuleNode
 from .util import first_in_dict, first_key, makedir
 
 
-class BuckProjectGenerator(object):
+class BlazeProjectGenerator(object):
     DIR_NAME = dirname(__file__)
     RESOURCE_DIR = join(DIR_NAME, "resources")
 
-    def __init__(self, app_root, buck_app_root, use_wmo=False):
+    def __init__(self, app_root, blaze_app_root, use_wmo=False, flavor='buck'):
         self.app_root = app_root
-        self.buck_app_root = buck_app_root
-        self.bzl_lib_template = self.load_resource("mocklibtemplate.bzl")
-        self.bzl_app_template = self.load_resource("mockapptemplate.bzl")
+        self.blaze_app_root = blaze_app_root
+        self.bzl_lib_template = self.load_resource("mock{}libtemplate.bzl".format(flavor))
+        self.bzl_app_template = self.load_resource("mock{}apptemplate.bzl".format(flavor))
         self.swift_gen = SwiftFileGenerator()
         self.use_wmo = use_wmo
+        self.flavor = flavor
         self.swift_file_size_loc = None
         self.calculate_loc()
 
@@ -64,13 +65,18 @@ class BuckProjectGenerator(object):
 
     @staticmethod
     def load_resource(name):
-        with open(join(BuckProjectGenerator.RESOURCE_DIR, name), "r") as f:
+        with open(join(BlazeProjectGenerator.RESOURCE_DIR, name), "r") as f:
             return f.read()
 
     @staticmethod
     def copy_resource(name, dest):
-        origin = join(BuckProjectGenerator.RESOURCE_DIR, name)
+        origin = join(BlazeProjectGenerator.RESOURCE_DIR, name)
         shutil.copyfile(origin, dest)
+
+    @staticmethod
+    def copy_resource_dir(name, dest):
+        origin = join(BlazeProjectGenerator.RESOURCE_DIR, name)
+        shutil.copytree(origin, dest)
 
     @staticmethod
     def write_file(path, text):
@@ -82,14 +88,17 @@ class BuckProjectGenerator(object):
         return (",\n" + (" " * 8)).join(items)
 
     def make_dep_list(self, items):
-        return self.make_list_str(["'/{0}/{1}:{1}'".format(self.buck_app_root, i) for i in items])
+        return self.make_list_str(["'//{0}:{0}'".format(i) for i in items])
 
     def make_scheme_list(self, items):
         return self.make_list_str(
-            ["{2: <20} :'/{0}/{1}:{1}Scheme'".format(self.buck_app_root, i, "'{}'".format(i)) for i in items])
+            ["{2: <20} :'/{0}/{1}:{1}Scheme'".format(self.blaze_app_root, i, "'{}'".format(i)) for i in items])
 
     def example_command(self):
-        return "buck project /{}/App:MockApp".format(self.buck_app_root)
+        if self.flavor == 'buck':
+            return "buck project //App:App"
+        elif self.flavor == 'bazel':
+            return "Use Tulsi or XCHammer to generate an Xcode project."
 
     # Generation Functions
 
@@ -113,12 +122,19 @@ class BuckProjectGenerator(object):
         app_module_dir = join(self.app_root, "App")
         makedir(app_module_dir)
 
+        app_build_file = "BUCK" if self.flavor == 'buck' else "BUILD"
         app_files = {
             "main.swift": self.gen_app_main(app_node, module_index),
-            "BUCK": self.gen_app_buck(app_node, library_node_list),
+            app_build_file: self.gen_app_build(app_node, library_node_list),
         }
 
         self.copy_resource("Info.plist", join(app_module_dir, "Info.plist"))
+
+        if self.flavor == 'buck':
+            self.copy_resource("mockbuckconfig", join(self.app_root, ".buckconfig"))
+        elif self.flavor == 'bazel':
+            self.copy_resource("mockbazelworkspace", join(self.app_root, "WORKSPACE"))
+            self.copy_resource_dir("tools", join(self.app_root, "tools"))
 
         for name, text in app_files.iteritems():
             self.write_file(join(app_module_dir, name), text)
@@ -127,7 +143,7 @@ class BuckProjectGenerator(object):
             # Copy the LOC file into the generated project.
             shutil.copyfile(loc_json_file_path, join(self.app_root, basename(loc_json_file_path)))
 
-    def gen_app_buck(self, node, all_nodes):
+    def gen_app_build(self, node, all_nodes):
         module_dep_list = self.make_dep_list([i.name for i in node.deps])
         module_scheme_list = self.make_scheme_list([i.name for i in all_nodes])
         return self.bzl_app_template.format(module_scheme_list, module_dep_list, self.wmo_state)
@@ -143,9 +159,8 @@ class BuckProjectGenerator(object):
     # Library Generation
 
     def gen_lib_module(self, module_node, loc_per_unit):
-        # Make BUCK Text
         deps = self.make_dep_list([i.name for i in module_node.deps])
-        buck_text = self.bzl_lib_template.format(module_node.name, deps, self.wmo_state)
+        build_text = self.bzl_lib_template.format(module_node.name, deps, self.wmo_state)
 
         # Make Swift Text
         file_count = (max(self.swift_file_size_loc, loc_per_unit) * module_node.code_units) / self.swift_file_size_loc
@@ -160,9 +175,10 @@ class BuckProjectGenerator(object):
         makedir(module_dir_path)
         makedir(files_dir_path)
 
-        # Write BUCK File
-        buck_path = join(module_dir_path, "BUCK")
-        self.write_file(buck_path, buck_text)
+        # Write BUCK or BUILD Files
+        build_name = "BUCK" if self.flavor == 'buck' else "BUILD"
+        build_path = join(module_dir_path, build_name)
+        self.write_file(build_path, build_text)
 
         # Write Swift Files
         for file_name, file_obj in files.iteritems():
