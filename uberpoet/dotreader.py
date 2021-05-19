@@ -55,7 +55,7 @@ class DotFileReader(object):
     def read_dot_file(self, path, root_node_name, is_debug=False):
         # type: (str, str, bool) -> (ModuleNode, List[ModuleNode])
         """
-        Reads a BUCK dependency dump in a dot/gv file at `path` and returns a `ModuleNode`
+        Reads a Buck dependency dump in a dot/gv file at `path` and returns a `ModuleNode`
         graph root and list of nodes to generate a mock app from it.
 
         :param path:  Path to the dot file

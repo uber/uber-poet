@@ -32,8 +32,8 @@ class CocoaPodsProjectGenerator(object):
 
     def __init__(self, app_root, use_wmo=False):
         self.app_root = app_root
-        self.pod_lib_template = self.load_resource("mocklibtemplate.podspec")
-        self.pod_app_template = self.load_resource("mockapptemplate.podspec")
+        self.pod_lib_template = self.load_resource("mockcplibtemplate.podspec")
+        self.pod_app_template = self.load_resource("mockcpapptemplate.podspec")
         self.podfile_template = self.load_resource("mockpodfile")
         self.swift_gen = SwiftFileGenerator()
         self.use_wmo = use_wmo

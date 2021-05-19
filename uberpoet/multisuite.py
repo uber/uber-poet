@@ -17,7 +17,6 @@ from __future__ import absolute_import, print_function
 import argparse
 import datetime
 import logging
-import os
 import shutil
 import subprocess
 import sys
@@ -25,7 +24,7 @@ import tempfile
 import time
 from os.path import join
 
-from . import buckprojectgen, commandlineutil, cpprojectgen
+from . import blazeprojectgen, commandlineutil, cpprojectgen
 from .cpulogger import CPULogger
 from .moduletree import ModuleGenType
 from .statemanagement import SettingsState, XcodeManager
@@ -46,7 +45,11 @@ class CommandLineMultisuite(object):
         parser.add_argument('--log_dir', default=log_root, help="Where logs such as build times should exist."),
         parser.add_argument(
             '--app_gen_output_dir', default=tmp_root, help="Where generated mock apps should be outputted to."),
-        parser.add_argument('--buck_command', default='buck', help="The path to the buck binary.  Defaults to `buck`."),
+        parser.add_argument('--buck_command', default='buck', help="The path to the Buck binary.  Defaults to `buck`."),
+        parser.add_argument(
+            '--bazel_command', default='bazel', help="The path to the Bazel binary.  Defaults to `bazel`."),
+        parser.add_argument(
+            '--pod_command', default='pod', help="The path to the CocoaPods binary.  Defaults to `pod`."),
 
         commandlineutil.AppGenerationConfig.add_app_gen_options(parser)
 
@@ -58,7 +61,7 @@ class CommandLineMultisuite(object):
             '--switch_xcode_versions',
             action='store_true',
             default=False,
-            help="Switch Xcode verions as part of the full multisuite test. This will search your "
+            help="Switch Xcode versions as part of the full multisuite test. This will search your "
             "`/Applications` directory for xcode.app bundles to build with. Requires sudo."),
         actions.add_argument(
             '--full_clean',
@@ -68,10 +71,10 @@ class CommandLineMultisuite(object):
 
         parser.add_argument(
             '--project_generator_type',
-            choices=['buck', 'cocoapods'],
+            choices=['buck', 'bazel', 'cocoapods'],
             default='buck',
             required=False,
-            help='The project generator type to use. Supported types are BUCK and CocoaPods. Default is BUCK')
+            help='The project generator type to use. Supported types are Buck, Bazel and CocoaPods. Default is `buck`')
 
         testing = parser.add_argument_group('Testing Shortcuts')
         testing.add_argument(
@@ -99,6 +102,8 @@ class CommandLineMultisuite(object):
         self.log_dir = config.log_dir
         self.output_dir = config.app_gen_output_dir
         self.buck_binary = config.buck_command
+        self.bazel_binary = config.bazel_command
+        self.pod_binary = config.pod_command
 
         self.project_generator_type = config.project_generator_type
 
@@ -111,7 +116,9 @@ class CommandLineMultisuite(object):
         self.run_xcodebuild = (not config.skip_xcode_build)
         self.test_build_only = config.test_build_only
 
-    def main(self, args=sys.argv[1:]):
+    def main(self, args=None):
+        if args is None:
+            args = sys.argv[1:]
         logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(funcName)s: %(message)s')
 
         args = self.parse_config(args)
@@ -136,7 +143,7 @@ class CommandLineMultisuite(object):
 
         self.mock_output_dir = join(output_dir, 'apps', 'mockapp')
         self.mock_pods_app_project = join(self.mock_output_dir, 'Pods', 'Pods.xcodeproj')
-        self.mock_app_workspace = join(self.mock_output_dir, 'App', 'MockApp.xcworkspace')
+        self.mock_app_workspace = join(self.mock_output_dir, 'App', 'App.xcworkspace')
         self.buckconfig_path = join(output_dir, '.buckconfig.local')
 
         self.sys_info_path = join(log_dir, 'system_info.txt')
@@ -144,7 +151,7 @@ class CommandLineMultisuite(object):
         self.build_time_csv_path = join(log_dir, 'build_times.csv')
         self.build_trace_path = join(log_dir, 'build_traces')
         self.app_path = '/apps/mockapp'
-        self.app_buck_path = "/{}/App:MockApp".format(self.app_path)
+        self.app_blaze_path = "//App:App"
 
         has_dot = self.app_gen_options.dot_file_path and self.app_gen_options.dot_root_node_name
         if test_build:
@@ -183,33 +190,29 @@ class CommandLineMultisuite(object):
         # Build App
         total_time = 0
         if self.run_xcodebuild:
-            logging.info('Generate Xcode workspace & clean')
+            logging.info('Generate workspace & clean')
 
             derived_data_path = join(tempfile.gettempdir(), 'ub_mockapp_derived_data')
             shutil.rmtree(derived_data_path, ignore_errors=True)
             makedir(derived_data_path)
 
-            if self.project_generator_type == "buck":
-                subprocess.check_call([self.buck_binary, 'project', self.app_buck_path, '-d'])
-            elif self.project_generator_type == "cocoapods":
-                owd = os.getcwd()
-                os.chdir(self.mock_output_dir)
-                subprocess.check_call(['pod', 'install'])
-                os.chdir(owd)
+            if self.project_generator_type == "cocoapods":
+                subprocess.check_call([self.pod_binary, 'install'], cwd=self.mock_output_dir)
 
             if self.full_clean:
                 self.xcode_manager.clean_caches()
 
-            logging.info('Start xcodebuild')
+            logging.info('Start build')
             start = time.time()
             with open(build_log_path, 'w') as build_log_file:
                 if self.project_generator_type == "buck":
-                    subprocess.check_call([
-                        'xcodebuild', 'build', '-scheme', 'MockApp', '-sdk', 'iphonesimulator', '-workspace',
-                        self.mock_app_workspace, '-derivedDataPath', derived_data_path
-                    ],
-                                          stdout=build_log_file,
-                                          stderr=build_log_file)
+                    subprocess.check_call([self.buck_binary, 'build', '//...'], cwd=self.mock_output_dir)
+                elif self.project_generator_type == "bazel":
+                    subprocess.check_call(
+                        [self.bazel_binary, 'build', '//...', '--incompatible_require_linker_input_cc_api=false'],
+                        cwd=self.mock_output_dir,
+                        stdout=build_log_file,
+                        stderr=build_log_file)
                 elif self.project_generator_type == "cocoapods":
                     subprocess.check_call([
                         'xcodebuild', 'build', '-scheme', 'AppContainer-App', '-sdk', 'iphonesimulator', '-project',
@@ -220,7 +223,7 @@ class CommandLineMultisuite(object):
             end = time.time()
             total_time = int(end - start)
         else:
-            logging.info('Skipping xcodebuild & project generation')
+            logging.info('Skipping build & project generation')
 
         # Log Results
         build_end = str(datetime.datetime.now())
@@ -238,13 +241,23 @@ class CommandLineMultisuite(object):
             return  # We don't need these binaries if we are not going to use them.
 
         xcode = ['xcodebuild', 'xcode-select']
-        local = [self.buck_binary]
+        local = []
+        if self.project_generator_type == "buck":
+            local.append(self.buck_binary)
+        elif self.project_generator_type == "bazel":
+            local.append(self.bazel_binary)
+        elif self.project_generator_type == "cocoapods":
+            local.append(self.pod_binary)
         missing = check_dependent_commands(xcode + local)
 
         if missing == xcode:
             logging.error("Xcode command line tools do not seem to be installed / are missing in your path.")
-        elif missing == local:
+        elif missing == [self.buck_binary]:
             logging.error("Specified buck command not available.  Did you install it in your path?")
+        elif missing == [self.bazel_binary]:
+            logging.error("Specified bazel command not available.  Did you install it in your path?")
+        elif missing == [self.pod_binary]:
+            logging.error("Specified pod command not available.  Did you install it in your path?")
 
         if missing:
             logging.error("Missing required binaries: %s", str(missing))
@@ -270,7 +283,7 @@ class CommandLineMultisuite(object):
             self.sudo_warning()
             self.xcode_paths = self.xcode_manager.discover_xcode_versions()
             self.xcode_versions = self.xcode_paths.keys()
-            logging.info("Discovered xcode verions: %s", str(self.xcode_versions))
+            logging.info("Discovered xcode versions: %s", str(self.xcode_versions))
         else:
             self.xcode_paths = {}
             self.xcode_versions = [None]
@@ -289,8 +302,9 @@ class CommandLineMultisuite(object):
         self.dump_system_info()
 
         print(self.project_generator_type)
-        if self.project_generator_type == "buck":
-            self.project_generator = buckprojectgen.BuckProjectGenerator(self.mock_output_dir, self.app_path)
+        if self.project_generator_type == "buck" or self.project_generator_type == "bazel":
+            self.project_generator = blazeprojectgen.BlazeProjectGenerator(
+                self.mock_output_dir, self.app_path, flavor=self.project_generator_type)
         elif self.project_generator_type == "cocoapods":
             self.project_generator = cpprojectgen.CocoaPodsProjectGenerator(self.mock_output_dir)
         else:

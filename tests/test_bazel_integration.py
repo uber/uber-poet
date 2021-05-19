@@ -1,4 +1,4 @@
-#  Copyright (c) 2018 Uber Technologies, Inc.
+#  Copyright (c) 2021 Uber Technologies, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ from uberpoet.multisuite import CommandLineMultisuite
 from .utils import integration_test, read_file
 
 
-class TestBuckIntegration(unittest.TestCase):
+class TestBazelIntegration(unittest.TestCase):
 
     def verify_genproj(self, lib_name, mod_count, app_path):
         main_path = join(app_path, 'App')
@@ -44,7 +44,7 @@ class TestBuckIntegration(unittest.TestCase):
         self.assertIn('App', contents)
         app_contents = os.listdir(main_path)
         self.assertGreater(len(app_contents), 0)
-        for file_name in ['BUCK', 'main.swift', 'Info.plist']:
+        for file_name in ['BUILD', 'main.swift', 'Info.plist']:
             self.assertIn(file_name, app_contents)
             with open(join(main_path, file_name), 'r') as f:
                 self.assertGreater(len(f.read()), 0)
@@ -64,12 +64,13 @@ class TestBuckIntegration(unittest.TestCase):
         app_path = join(tempfile.gettempdir(), 'apps', 'mockapp')
         args = [
             "--output_directory", app_path, "--blaze_module_path", "/apps/mockapp", "--gen_type", "flat",
+            "--project_generator_type", "bazel",
             "--lines_of_code", "150000"
         ]
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('MockLib53', 102, app_path)
+        self.verify_genproj('MockLib53', 103, app_path)
 
     @integration_test
     def test_dot_genproj(self):
@@ -78,12 +79,13 @@ class TestBuckIntegration(unittest.TestCase):
         test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'test_dot.gv')
         args = [
             "--output_directory", app_path, "--blaze_module_path", "/apps/mockapp", "--gen_type", "dot",
+            "--project_generator_type", "bazel",
             "--lines_of_code", "150000", "--dot_file", test_fixture_path, "--dot_root", "DotReaderMainModule"
         ]
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 339, app_path)
+        self.verify_genproj('DotReaderLib17', 340, app_path)
 
     @integration_test
     def test_dot_genproj_with_loc_mappings(self):
@@ -93,24 +95,26 @@ class TestBuckIntegration(unittest.TestCase):
         loc_test_fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures', 'loc_mappings.json')
         args = [
             "--output_directory", app_path, "--blaze_module_path", "/apps/mockapp", "--gen_type", "dot",
+            "--project_generator_type", "bazel",
             "--dot_file", test_fixture_path, "--dot_root", "DotReaderMainModule",
             "--loc_json_file_path", loc_test_fixture_path
         ]
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 340, app_path)
+        self.verify_genproj('DotReaderLib17', 341, app_path)
 
     @integration_test
     def test_flat_multisuite(self):
         root_path = join(tempfile.gettempdir(), 'multisuite_test')
         app_path = join(root_path, 'apps', 'mockapp')
         log_path = join(root_path, 'logs')
-        args = ["--log_dir", log_path, "--app_gen_output_dir", root_path, "--test_build_only", "--skip_xcode_build"]
+        args = ["--log_dir", log_path, "--app_gen_output_dir", root_path, "--test_build_only", "--skip_xcode_build",
+                "--project_generator_type", "bazel"]
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj('MockLib53', 102, app_path)
+        self.verify_genproj('MockLib53', 103, app_path)
 
     @integration_test
     def test_flat_multisuite_mocking_calls(self):
@@ -121,6 +125,7 @@ class TestBuckIntegration(unittest.TestCase):
         log_path = join(root_path, 'logs')
         args = [
             "--log_dir", log_path, "--app_gen_output_dir", root_path, "--test_build_only", "--switch_xcode_versions",
+            "--project_generator_type", "bazel",
             "--full_clean"
         ]
 
@@ -142,7 +147,7 @@ class TestBuckIntegration(unittest.TestCase):
                 mock_find.return_value = '/bin/ls'  # A non empty return value basically means "I found that executable"
                 CommandLineMultisuite().main(args)
                 self.assertGreater(os.listdir(app_path), 0)
-                self.verify_genproj('MockLib53', 102, app_path)
+                self.verify_genproj('MockLib53', 103, app_path)
 
     @integration_test
     def test_dot_multisuite(self):
@@ -152,12 +157,13 @@ class TestBuckIntegration(unittest.TestCase):
         log_path = join(root_path, 'logs')
         args = [
             "--log_dir", log_path, "--app_gen_output_dir", root_path, "--dot_file", test_fixture_path, "--dot_root",
-            "DotReaderMainModule", "--skip_xcode_build", "--test_build_only"
+            "DotReaderMainModule", "--skip_xcode_build", "--test_build_only",
+            "--project_generator_type", "bazel"
         ]
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj('DotReaderLib17', 339, app_path)
+        self.verify_genproj('DotReaderLib17', 340, app_path)
 
     @integration_test
     def test_all_multisuite(self):
@@ -167,7 +173,8 @@ class TestBuckIntegration(unittest.TestCase):
         log_path = join(root_path, 'logs')
         args = [
             "--log_dir", log_path, "--app_gen_output_dir", root_path, "--dot_file", test_fixture_path, "--dot_root",
-            "DotReaderMainModule", "--skip_xcode_build", "--lines_of_code", "150000"
+            "DotReaderMainModule", "--skip_xcode_build", "--lines_of_code", "150000",
+            "--project_generator_type", "bazel"
         ]
         command = CommandLineMultisuite()
         command.main(args)
@@ -176,4 +183,4 @@ class TestBuckIntegration(unittest.TestCase):
         # Note we are assuming that the last project to be generated is the dot project.
         # If you change the order of project generation, make this match whatever is the new 'last project'
         # It's a bit fragile, but it's better than not verifying anything currently
-        self.verify_genproj('DotReaderLib17', 339, app_path)
+        self.verify_genproj('DotReaderLib17', 340, app_path)
