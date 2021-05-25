@@ -57,6 +57,12 @@ class GenProjCommandLine(object):
             default=False,
             help='Whether or not to use whole module optimization when building swift modules.')
         parser.add_argument(
+            '-udl',
+            '--use_dynamic_linking',
+            default=False,
+            help='Whether or not to generate a project in which the modules are dynamically linked.  By default all '
+            'projects use static linking. This option is currently used only the CocoaPods generator.')
+        parser.add_argument(
             '--print_dependency_graph',
             default=False,
             help='If true, prints out the dependency edge list and exits instead of generating an application.')
@@ -110,7 +116,8 @@ def project_generator_for_arg(args):
         return blazeprojectgen.BlazeProjectGenerator(
             args.output_directory, args.blaze_module_path, use_wmo=args.use_wmo, flavor=args.project_generator_type)
     elif args.project_generator_type == 'cocoapods':
-        return cpprojectgen.CocoaPodsProjectGenerator(args.output_directory, use_wmo=args.use_wmo)
+        return cpprojectgen.CocoaPodsProjectGenerator(
+            args.output_directory, use_wmo=args.use_wmo, use_dynamic_linking=args.use_dynamic_linking)
     else:
         raise ValueError("Unknown project generator arg: " + str(args.project_generator_type))
 

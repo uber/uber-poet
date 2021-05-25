@@ -16,7 +16,7 @@
 # Check it out at https://github.com/uber/uber-poet
 
 platform :ios, '12.0'
-use_frameworks!
+use_frameworks!(:linkage => {2})
 inhibit_all_warnings!
 
 install! 'cocoapods', integrate_targets: false
