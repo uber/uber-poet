@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import
 
+import json
 import logging
 import shutil
 import tempfile
@@ -108,16 +109,20 @@ class BlazeProjectGenerator(object):
         if loc_json_file_path:
             loc_reader = locreader.LocFileReader()
             loc_reader.read_loc_file(loc_json_file_path)
-            module_index = {
-                n.name: self.gen_lib_module(n, loc_reader.loc_for_module(n.name)) for n in library_node_list
-            }
+            loc = loc_reader.loc_for_module(n.name)
+            module_index = {n.name: {"files": self.gen_lib_module(n, loc), "loc": loc} for n in library_node_list}
         else:
             total_code_units = 0
             for l in library_node_list:
                 total_code_units += l.code_units
 
             loc_per_unit = target_loc / total_code_units
-            module_index = {n.name: self.gen_lib_module(n, loc_per_unit) for n in library_node_list}
+            module_index = {
+                n.name: {
+                    "files": self.gen_lib_module(n, loc_per_unit),
+                    "loc": loc_per_unit
+                } for n in library_node_list
+            }
 
         app_module_dir = join(self.app_root, "App")
         makedir(app_module_dir)
@@ -143,6 +148,16 @@ class BlazeProjectGenerator(object):
             # Copy the LOC file into the generated project.
             shutil.copyfile(loc_json_file_path, join(self.app_root, basename(loc_json_file_path)))
 
+        serializable_module_index = {
+            key: {
+                "file_count": len(value["files"]),
+                "loc": value["loc"]
+            } for key, value in module_index.items()
+        }
+
+        with open(join(self.app_root, "module_index.json"), "w") as module_index_json_file:
+            json.dump(serializable_module_index, module_index_json_file)
+
     def gen_app_build(self, node, all_nodes):
         module_dep_list = self.make_dep_list([i.name for i in node.deps])
         module_scheme_list = self.make_scheme_list([i.name for i in all_nodes])
@@ -150,7 +165,7 @@ class BlazeProjectGenerator(object):
 
     def gen_app_main(self, app_node, module_index):
         importing_module_name = app_node.deps[0].name
-        file_index = first_in_dict(module_index[importing_module_name])
+        file_index = first_in_dict(module_index[importing_module_name]["files"])
         class_key = first_key(file_index.classes)
         class_index = first_in_dict(file_index.classes)
         function_key = class_index[0]

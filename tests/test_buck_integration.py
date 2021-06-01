@@ -31,14 +31,14 @@ from .utils import integration_test, read_file
 
 class TestBuckIntegration(unittest.TestCase):
 
-    def verify_genproj(self, lib_name, mod_count, app_path):
+    def verify_genproj(self, lib_name, file_count, app_path):
         main_path = join(app_path, 'App')
         lib_path = join(app_path, lib_name, 'Sources')
 
         # Top level dir
         contents = os.listdir(app_path)
         self.assertGreater(len(contents), 0)
-        self.assertEqual(len(contents), mod_count)
+        self.assertEqual(len(contents), file_count)
 
         # App dir
         self.assertIn('App', contents)
@@ -69,7 +69,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('MockLib53', 102, app_path)
+        self.verify_genproj('MockLib53', 103, app_path)
 
     @integration_test
     def test_dot_genproj(self):
@@ -83,7 +83,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 339, app_path)
+        self.verify_genproj('DotReaderLib17', 340, app_path)
 
     @integration_test
     def test_dot_genproj_with_loc_mappings(self):
@@ -99,7 +99,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 340, app_path)
+        self.verify_genproj('DotReaderLib17', 341, app_path)
 
     @integration_test
     def test_flat_multisuite(self):
@@ -110,7 +110,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj('MockLib53', 102, app_path)
+        self.verify_genproj('MockLib53', 103, app_path)
 
     @integration_test
     def test_flat_multisuite_mocking_calls(self):
@@ -142,7 +142,7 @@ class TestBuckIntegration(unittest.TestCase):
                 mock_find.return_value = '/bin/ls'  # A non empty return value basically means "I found that executable"
                 CommandLineMultisuite().main(args)
                 self.assertGreater(os.listdir(app_path), 0)
-                self.verify_genproj('MockLib53', 102, app_path)
+                self.verify_genproj('MockLib53', 103, app_path)
 
     @integration_test
     def test_dot_multisuite(self):
@@ -157,7 +157,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj('DotReaderLib17', 339, app_path)
+        self.verify_genproj('DotReaderLib17', 340, app_path)
 
     @integration_test
     def test_all_multisuite(self):
@@ -176,4 +176,4 @@ class TestBuckIntegration(unittest.TestCase):
         # Note we are assuming that the last project to be generated is the dot project.
         # If you change the order of project generation, make this match whatever is the new 'last project'
         # It's a bit fragile, but it's better than not verifying anything currently
-        self.verify_genproj('DotReaderLib17', 339, app_path)
+        self.verify_genproj('DotReaderLib17', 340, app_path)
