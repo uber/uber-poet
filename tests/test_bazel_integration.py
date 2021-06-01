@@ -70,7 +70,7 @@ class TestBazelIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('MockLib53', 104, app_path)
+        self.verify_genproj('MockLib53', 105, app_path)
 
     @integration_test
     def test_dot_genproj(self):
@@ -85,7 +85,7 @@ class TestBazelIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 341, app_path)
+        self.verify_genproj('DotReaderLib17', 342, app_path)
 
     @integration_test
     def test_dot_genproj_with_loc_mappings(self):
@@ -102,7 +102,7 @@ class TestBazelIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 342, app_path)
+        self.verify_genproj('DotReaderLib17', 343, app_path)
 
     @integration_test
     def test_flat_multisuite(self):

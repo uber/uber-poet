@@ -15,9 +15,11 @@
 from __future__ import absolute_import
 
 import argparse
+import json
 import logging
 import sys
 import time
+from os.path import join
 
 from . import blazeprojectgen, commandlineutil, cpprojectgen
 from .moduletree import ModuleGenType
@@ -97,10 +99,23 @@ class GenProjCommandLine(object):
         logging.info("Generation type: %s", args.gen_type)
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
         logging.info("Example command to generate Xcode workspace: $ {}".format(gen.example_command()))
+
         gen.gen_app(app_node, node_list, graph_config.lines_of_code, graph_config.loc_json_file_path)
 
         fin = time.time()
         logging.info("Done in %f s", fin - start)
+
+        project_info = {
+            "generator_type": args.project_generator_type,
+            "graph_config": args.gen_type,
+            "options": {
+                "use_wmo": bool(args.use_wmo),
+                "use_dynamic_linking": bool(args.use_dynamic_linking)
+            },
+            "time_to_generate": fin - start
+        }
+        with open(join(args.output_directory, "project_info.json"), "w") as project_info_json_file:
+            json.dump(project_info, project_info_json_file)
 
 
 def print_nodes(node_list):
