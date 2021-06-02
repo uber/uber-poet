@@ -24,6 +24,7 @@ from os.path import join
 
 from . import dotreader
 from .cpulogger import CPULog
+from .filegen import Language
 from .moduletree import ModuleGenType, ModuleNode
 from .util import bool_xor
 
@@ -161,7 +162,7 @@ def make_custom_buckconfig_local(buckconfig_path):
         config.write(buckconfig)
 
 
-def count_loc(code_path):
+def count_loc(code_path, language=Language.SWIFT):
     """Returns the number of lines of code in `code_path` using cloc. If cloc is not
     on your system or there is an error, then it returns -1"""
     try:
@@ -172,11 +173,11 @@ def count_loc(code_path):
         return -1
 
     json_out = json.loads(raw_json_out)
-    swift_loc = json_out.get('Swift', {}).get('code', 0)
-    if not swift_loc:
+    language_loc = json_out.get(language, {}).get('code', 0)
+    if not language_loc:
         logging.error('Unexpected cloc output "%s"', raw_json_out)
         raise ValueError('cloc did not give a correct value')
-    return swift_loc
+    return language_loc
 
 
 def apply_cpu_to_traces(build_trace_path, cpu_logger, time_cutoff=None):
