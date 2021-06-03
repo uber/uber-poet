@@ -35,7 +35,8 @@ class AppGenerationConfig(object):
                  module_count=0,
                  big_module_count=0,
                  small_module_count=0,
-                 lines_of_code=0,
+                 swift_lines_of_code=0,
+                 objc_lines_of_code=0,
                  app_layer_count=0,
                  dot_file_path='',
                  dot_root_node_name='',
@@ -43,7 +44,8 @@ class AppGenerationConfig(object):
         self.module_count = module_count
         self.big_module_count = big_module_count
         self.small_module_count = small_module_count
-        self.lines_of_code = lines_of_code
+        self.swift_lines_of_code = swift_lines_of_code
+        self.objc_lines_of_code = objc_lines_of_code
         self.app_layer_count = app_layer_count
         self.dot_file_path = dot_file_path
         self.dot_root_node_name = dot_root_node_name
@@ -54,7 +56,8 @@ class AppGenerationConfig(object):
         self.module_count = args.module_count
         self.big_module_count = args.big_module_count
         self.small_module_count = args.small_module_count
-        self.lines_of_code = args.lines_of_code
+        self.swift_lines_of_code = args.swift_lines_of_code
+        self.objc_lines_of_code = args.objc_lines_of_code
         self.app_layer_count = args.app_layer_count
         self.dot_file_path = args.dot_file_path
         self.dot_root_node_name = args.dot_root_node_name
@@ -76,10 +79,15 @@ class AppGenerationConfig(object):
             type=int,
             help="How many small modules should be in a big/small mock app type."),
         app.add_argument(
-            '--lines_of_code',
+            '--swift_lines_of_code',
             default=1500000,  # 1.5 million lines of code
             type=int,
-            help="Approximately how many lines of code each mock app should be."),
+            help="Approximately how many lines of Swift code each mock app should have."),
+        app.add_argument(
+            '--objc_lines_of_code',
+            default=0,
+            type=int,
+            help="Approximately how many lines of ObjC code each mock app should have."),
         app.add_argument(
             '--app_layer_count',
             default=10,

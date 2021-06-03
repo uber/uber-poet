@@ -47,8 +47,14 @@ class LOCCalculator(object):
                 # this fallback is based on running cloc on the file made by `self.swift_gen.gen_file(3, 3)`
                 # and saving the result of cloc(file_result.text) / file_result.text_line_count to here:
                 fallback_code_multiplier = 0.811537333
-                loc = int(ceil(len(text.split('\n')) * fallback_code_multiplier))
+            elif language == Language.OBJC:
+                # fallback if cloc is not installed
+                # this fallback is based on running cloc on the file made by `self.objc_source_gen.gen_file(3, 3)`
+                # and saving the result of cloc(file_result.text) / file_result.text_line_count to here:
+                fallback_code_multiplier = 0.772727272
             else:
                 raise ValueError('No fallback multiplier calculated for language: {}'.format(language))
+
+            loc = int(ceil(len(text.split('\n')) * fallback_code_multiplier))
 
         return loc

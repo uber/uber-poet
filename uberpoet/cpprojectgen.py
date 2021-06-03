@@ -19,10 +19,10 @@ import shutil
 from os.path import basename, dirname, join
 
 from . import locreader
-from .filegen import SwiftFileGenerator
+from .filegen import Language, ObjCHeaderFileGenerator, ObjCSourceFileGenerator, SwiftFileGenerator
 from .loccalc import LOCCalculator
 from .moduletree import ModuleNode
-from .util import first_in_dict, first_key, makedir
+from .util import first_in_dict, first_key, makedir, percentage_split
 
 
 class CocoaPodsProjectGenerator(object):
@@ -40,6 +40,8 @@ class CocoaPodsProjectGenerator(object):
         self.pod_app_template = self.load_resource("mockcpapptemplate.podspec")
         self.podfile_template = self.load_resource("mockpodfile")
         self.swift_gen = SwiftFileGenerator()
+        self.objc_source_gen = ObjCSourceFileGenerator()
+        self.objc_header_gen = ObjCHeaderFileGenerator()
         self.loc_calc = LOCCalculator()
         self.use_wmo = use_wmo
         self.use_dynamic_linking = use_dynamic_linking
@@ -47,6 +49,8 @@ class CocoaPodsProjectGenerator(object):
         self.generate_multiple_pod_projects = generate_multiple_pod_projects
         self.swift_file_size_loc = self.loc_calc.calculate_loc(
             self.swift_gen.gen_file(3, 3).text, self.swift_gen.language())
+        self.objc_file_size_loc = self.loc_calc.calculate_loc(
+            self.objc_source_gen.gen_file(3, 3).text, self.objc_source_gen.language())
 
     @property
     def wmo_state(self):
@@ -82,26 +86,58 @@ class CocoaPodsProjectGenerator(object):
 
     # Generation Functions
 
-    def gen_app(self, app_node, node_list, target_loc, loc_json_file_path):
+    def gen_app(self, app_node, node_list, target_swift_loc, target_objc_loc, loc_json_file_path):
         library_node_list = [n for n in node_list if n.node_type == ModuleNode.LIBRARY]
 
         if loc_json_file_path:
             loc_reader = locreader.LocFileReader()
             loc_reader.read_loc_file(loc_json_file_path)
-            loc = loc_reader.loc_for_module(n.name)
-            module_index = {n.name: {"files": self.gen_lib_module(n, loc), "loc": loc} for n in library_node_list}
+            module_index = {}
+            for n in library_node_list:
+                loc = loc_reader.loc_for_module(n.name)
+                language = loc_reader.language_for_module(n.name)
+                module_index[n.name] = {
+                    "files": self.gen_lib_module(n, loc, language),
+                    "loc": loc,
+                    "language": language
+                }
         else:
             total_code_units = 0
             for l in library_node_list:
                 total_code_units += l.code_units
 
-            loc_per_unit = target_loc / total_code_units
-            module_index = {
+            total_loc = target_swift_loc + target_objc_loc
+
+            swift_module_count_percentage = round(float(target_swift_loc) / total_loc, 2)
+            objc_module_count_percentage = round(float(target_objc_loc) / total_loc, 2)
+
+            # Splits the generated module list across the percentage of LOC that needs to be allocated between ObjC
+            # and Swift and depending on the parameters passed.
+            split_library_node_list = list(
+                percentage_split(library_node_list, [swift_module_count_percentage, objc_module_count_percentage]))
+
+            swift_library_node_list = split_library_node_list[0]
+            objc_library_node_list = split_library_node_list[1]
+
+            loc_per_unit = total_loc / total_code_units
+
+            swift_module_index = {
                 n.name: {
-                    "files": self.gen_lib_module(n, loc_per_unit),
-                    "loc": loc_per_unit
-                } for n in library_node_list
+                    "files": self.gen_lib_module(n, loc_per_unit, Language.SWIFT),
+                    "loc": loc_per_unit,
+                    "language": Language.SWIFT
+                } for n in swift_library_node_list
             }
+
+            objc_module_index = {
+                n.name: {
+                    "files": self.gen_lib_module(n, loc_per_unit, Language.OBJC),
+                    "loc": loc_per_unit,
+                    "language": Language.OBJC
+                } for n in objc_library_node_list
+            }
+
+            module_index = dict(list(swift_module_index.items()) + list(objc_module_index.items()))
 
         app_module_dir = join(self.app_root, "App")
         makedir(app_module_dir)
@@ -142,24 +178,39 @@ class CocoaPodsProjectGenerator(object):
     def gen_app_main(self, app_node, module_index):
         importing_module_name = app_node.deps[0].name
         file_index = first_in_dict(module_index[importing_module_name]["files"])
+        language = module_index[importing_module_name]["language"]
         class_key = first_key(file_index.classes)
         class_index = first_in_dict(file_index.classes)
         function_key = class_index[0]
-        return self.swift_gen.gen_main(importing_module_name, class_key, function_key)
+        return self.swift_gen.gen_main(importing_module_name, class_key, function_key, language)
 
     # Library Generation
 
-    def gen_lib_module(self, module_node, loc_per_unit):
+    def gen_lib_module(self, module_node, loc_per_unit, language):
         # Make Podspec Text
         deps = self.make_dep_list([i.name for i in module_node.deps])
         pod_text = self.pod_lib_template.format(module_node.name, deps, self.wmo_state)
 
-        # Make Swift Text
-        file_count = (max(self.swift_file_size_loc, loc_per_unit) * module_node.code_units) / self.swift_file_size_loc
-        if file_count < 1:
-            raise ValueError("Lines of code count is too small for the module {} to fit one file, increase it.".format(
-                module_node.name))
-        files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(file_count)}
+        # Make Text
+        if language == Language.SWIFT:
+            file_count = (
+                max(self.swift_file_size_loc, loc_per_unit) * module_node.code_units) / self.swift_file_size_loc
+            if file_count < 1:
+                raise ValueError(
+                    "Lines of code count is too small for the module {} to fit one file, increase it.".format(
+                        module_node.name))
+            files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(file_count)}
+        elif language == Language.OBJC:
+            file_count = (max(self.objc_file_size_loc, loc_per_unit) * module_node.code_units) / self.objc_file_size_loc
+            if file_count < 1:
+                raise ValueError(
+                    "Lines of code count is too small for the module {} to fit one file, increase it.".format(
+                        module_node.name))
+            files = {}
+            for i in xrange(file_count):
+                objc_source_file = self.objc_source_gen.gen_file(3, 3, import_list=['File{}.h'.format(i)])
+                files["File{}.m".format(i)] = objc_source_file
+                files["File{}.h".format(i)] = self.objc_header_gen.gen_file(objc_source_file)
 
         # Make Module Directories
         module_dir_path = join(self.app_root, module_node.name)

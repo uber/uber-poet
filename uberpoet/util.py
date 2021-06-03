@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import distutils.spawn
+import math
 import os
 import subprocess
 
@@ -57,6 +58,18 @@ def merge_lists(two_d_list):
     # I know this is a fold / reduce, but I got an error when I tried
     # the reduce function?
     return [i for li in two_d_list for i in li]
+
+
+def percentage_split(list_to_split, percentages):
+    """Splits an array based on the percentages provided."""
+    result = []
+    previous_index = 0
+    for percentage in percentages:
+        next_index = int(previous_index + math.ceil((len(list_to_split) * percentage)))
+        result.append(list_to_split[previous_index:next_index])
+        previous_index = next_index
+
+    return result
 
 
 def sudo_enabled():

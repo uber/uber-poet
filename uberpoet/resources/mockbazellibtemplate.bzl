@@ -22,7 +22,9 @@ load("@build_bazel_rules_ios//rules:framework.bzl", "apple_framework")
 apple_framework(
     name = "{0}",
     srcs = glob([
-        "Sources/*.swift"
+        "Sources/**/*.h",
+        "Sources/**/*.m",
+        "Sources/**/*.swift",
     ]),
     sdk_frameworks = [
         "Foundation",

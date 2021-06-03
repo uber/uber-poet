@@ -23,7 +23,11 @@ load("@build_bazel_rules_ios//rules:framework.bzl", "apple_framework")
 
 apple_framework(
     name = "AppContainer",
-    srcs = glob(["dummy.swift"]),
+    srcs = glob([
+        "Sources/**/*.h",
+        "Sources/**/*.m",
+        "Sources/**/*.swift",
+    ]),
     platforms = {{"ios": "12.0"}},
     swift_version = "5.0",
     visibility = ["//visibility:public"],
@@ -34,7 +38,11 @@ apple_framework(
 
 ios_application(
     name = "App",
-    srcs = glob(["*.swift"]),
+    srcs = glob([
+        "*.h",
+        "*.m",
+        "*.swift",
+    ]),
     bundle_id = "com.uber.UberMockApp",
     families = [
         "iphone",
@@ -45,6 +53,9 @@ ios_application(
     sdk_frameworks = [
         "Foundation",
         "UIKit",
+    ],
+    linkopts = [
+        "-ObjC"
     ],
     swift_version = "5.0",
     xcconfig = {{

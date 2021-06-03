@@ -3,8 +3,8 @@
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2983/badge)](https://bestpractices.coreinfrastructure.org/projects/2983)
 [![Build Status](https://travis-ci.com/uber-common/uber-poet.svg?token=TZiRzWx6Zx4p4Kb4VxAB&branch=master)](https://travis-ci.com/uber-common/uber-poet)
 
-This python app makes mock Xcode Swift app projects with [Buck](https://buckbuild.com/), [Bazel](https://bazel.build/)
-and [CocoaPods](https://cocoapods.org).  It lets us test different Swift module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
+This python app makes mock Xcode Swift / ObjC app projects with [Buck](https://buckbuild.com/), [Bazel](https://bazel.build/)
+and [CocoaPods](https://cocoapods.org).  It lets us test different Swift / ObjC module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
 
 * `genproj.py` which generates one app which you have to build manually yourself.  Either with `buck`, `bazel` or `xcodebuild`.
 * `multisuite.py`, which generates all module configs, builds them, records how long they take to build into a CSV and outputs it's results to a directory passed in the command line.  Essentially a benchmark test suite.  Can take several hours to run depending how many lines of code each app takes.
@@ -57,7 +57,7 @@ pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
                         --project_generator_type "buck" \
                         --blaze_module_path "/mockapp" \
                         --gen_type flat \
-                        --lines_of_code 150000
+                        --swift_lines_of_code 150000
 ```
 
 Generate a project using Bazel:
@@ -66,7 +66,7 @@ pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
                         --project_generator_type "bazel" \
                         --blaze_module_path "/mockapp" \
                         --gen_type flat \
-                        --lines_of_code 150000
+                        --swift_lines_of_code 150000
 ```
 
 Generate a project using CocoaPods:
@@ -74,7 +74,17 @@ Generate a project using CocoaPods:
 pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
                         --project_generator_type "cocoapods" \
                         --gen_type flat \
-                        --lines_of_code 150000
+                        --swift_lines_of_code 150000
+```
+
+You may also generate a project that includes both Swift and ObjC:
+
+```bash
+pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
+                        --project_generator_type "cocoapods" \
+                        --gen_type flat \
+                        --swift_lines_of_code 100000 \
+                        --objc_lines_of_code 50000
 ```
 
 ```bash
@@ -93,7 +103,7 @@ pipenv run ./genproj.py --output_directory "$HOME/Desktop/mockapp" \
                         --gen_type dot \
                         --dot_file_path "$HOME/MyProject/my_project_graph.dot" \
                         --dot_root_node_name "MyProject" \
-                        --lines_of_code 150000
+                        --swift_lines_of_code 150000
 ```
 
 Examples on how to generate a `dot` file:
@@ -133,7 +143,16 @@ Please note the format of the JSON file for LOC mappings must look like:
 }
 ```
 
-All nodes found in your `dot` file must be present in your JSON LOC mappings file.
+You may also specify a LOC mapping file that includes the language that you want to use for each module, for example:
+
+```json
+{
+    "MyLibrary": { "loc": 500, "language": "Objective-C" },
+    "MyOtherLibrary":42
+}
+```
+
+NOTE: All nodes found in your `dot` file must be present in your JSON LOC mappings file.
 
 Examples on how to get the CLOC:
 

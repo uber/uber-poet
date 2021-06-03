@@ -156,7 +156,7 @@ class CommandLineMultisuite(object):
         has_dot = self.app_gen_options.dot_file_path and self.app_gen_options.dot_root_node_name
         if test_build:
             logging.info("Using test build settings")
-            self.app_gen_options.lines_of_code = 100000
+            self.app_gen_options.swift_lines_of_code = 100000
             self.wmo_modes = [False]
             self.type_list = [ModuleGenType.dot] if has_dot else [ModuleGenType.flat]
         else:
@@ -181,8 +181,8 @@ class CommandLineMultisuite(object):
 
         logging.info('Generating mock app')
         app_node, node_list = commandlineutil.gen_graph(gen_type, self.app_gen_options)
-        self.project_generator.gen_app(app_node, node_list, self.app_gen_options.lines_of_code,
-                                       self.app_gen_options.loc_json_file_path)
+        self.project_generator.gen_app(app_node, node_list, self.app_gen_options.swift_lines_of_code,
+                                       self.app_gen_options.objc_lines_of_code, self.app_gen_options.loc_json_file_path)
 
         swift_loc = commandlineutil.count_loc(self.mock_output_dir)
         logging.info('App type "%s" generated %d loc', gen_type, swift_loc)

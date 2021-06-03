@@ -28,7 +28,7 @@ pipenv run $GIT_ROOT/genproj.py \
            --output_directory "$PROJECT_OUT" \
            --blaze_module_path "/mockapp" \
            --gen_type flat \
-           --lines_of_code 150000
+           --swift_lines_of_code 150000
 
 MOCK_WORKSPACE_PATH="$PROJECT_OUT/App/App.xcworkspace"
 cd "$PROJECT_OUT"

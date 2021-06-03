@@ -109,7 +109,8 @@ class GenProjCommandLine(object):
         logging.info("Creating a {} module count mock app in {}".format(len(node_list), args.output_directory))
         logging.info("Example command to generate Xcode workspace: $ {}".format(gen.example_command()))
 
-        gen.gen_app(app_node, node_list, graph_config.lines_of_code, graph_config.loc_json_file_path)
+        gen.gen_app(app_node, node_list, graph_config.swift_lines_of_code, graph_config.objc_lines_of_code,
+                    graph_config.loc_json_file_path)
 
         fin = time.time()
         logging.info("Done in %f s", fin - start)
@@ -119,7 +120,9 @@ class GenProjCommandLine(object):
             "graph_config": args.gen_type,
             "options": {
                 "use_wmo": bool(args.use_wmo),
-                "use_dynamic_linking": bool(args.use_dynamic_linking)
+                "use_dynamic_linking": bool(args.use_dynamic_linking),
+                "swift_lines_of_code": args.swift_lines_of_code,
+                "objc_lines_of_code": args.objc_lines_of_code
             },
             "time_to_generate": fin - start
         }
