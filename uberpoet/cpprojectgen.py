@@ -15,14 +15,12 @@
 from __future__ import absolute_import
 
 import json
-import logging
 import shutil
-import tempfile
 from os.path import basename, dirname, join
 
 from . import locreader
-from .commandlineutil import count_loc
 from .filegen import SwiftFileGenerator
+from .loccalc import LOCCalculator
 from .moduletree import ModuleNode
 from .util import first_in_dict, first_key, makedir
 
@@ -37,32 +35,15 @@ class CocoaPodsProjectGenerator(object):
         self.pod_app_template = self.load_resource("mockcpapptemplate.podspec")
         self.podfile_template = self.load_resource("mockpodfile")
         self.swift_gen = SwiftFileGenerator()
+        self.loc_calc = LOCCalculator()
         self.use_wmo = use_wmo
         self.use_dynamic_linking = use_dynamic_linking
-        self.swift_file_size_loc = None
-        self.calculate_loc()
+        self.swift_file_size_loc = self.loc_calc.calculate_loc(
+            self.swift_gen.gen_file(3, 3).text, self.swift_gen.language())
 
     @property
     def wmo_state(self):
         return "YES" if self.use_wmo else "NO"
-
-    def calculate_loc(self):
-        # actual code = lines of code, minus whitespace
-        # calculated using cloc
-        file_result = self.swift_gen.gen_file(3, 3)
-        tmp_file_path = join(tempfile.gettempdir(), 'ub_mock_gen_example_file.swift')
-        with open(tmp_file_path, 'w') as f:
-            f.write(file_result.text)
-        self.swift_file_size_loc = count_loc(tmp_file_path)
-
-        if self.swift_file_size_loc == -1:
-            logging.warning("Using fallback loc calc method due to cloc not being installed.")
-            # fallback if cloc is not installed
-            # this fallback is based on running cloc on the file made by `self.swift_gen.gen_file(3, 3)`
-            # and saving the result of cloc(file_result.text) / file_result.text_line_count to here:
-            fallback_code_multiplier = 0.811537333
-
-            self.swift_file_size_loc = int(file_result.text_line_count * fallback_code_multiplier)
 
     @staticmethod
     def load_resource(name):

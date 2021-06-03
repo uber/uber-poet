@@ -43,19 +43,28 @@ public class MyClass{0} {{
 }}"""
 
 
+class Language(object):
+    SWIFT = 'Swift'
+    OBJC = 'Objective-C'
+
+    @staticmethod
+    def enum_list():
+        return [Language.SWIFT, Language.OBJC]
+
+
 class FileResult(object):
 
     def __init__(self, text, functions, classes):
         super(FileResult, self).__init__()
         self.text = text  # string
-        self.text_line_count = text.count('\n')
+        self.text_line_count = len(text.split('\n'))
         self.functions = functions  # list of indexes
         self.classes = classes  # {class index: function indexes}
 
 
 class FileGenerator(object):
 
-    def gen_file(self, class_count, function_count, line_goal):
+    def gen_file(self, class_count, function_count):
         return FileResult("", [], {})
 
 
@@ -63,6 +72,14 @@ class SwiftFileGenerator(FileGenerator):
 
     def __init__(self):
         self.gen_state = {}
+
+    @staticmethod
+    def language():
+        return Language.SWIFT
+
+    @staticmethod
+    def extension():
+        return '.swift'
 
     @staticmethod
     def gen_func(function_count, var_name):
