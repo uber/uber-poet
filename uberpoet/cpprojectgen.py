@@ -29,7 +29,12 @@ class CocoaPodsProjectGenerator(object):
     DIR_NAME = dirname(__file__)
     RESOURCE_DIR = join(DIR_NAME, "resources")
 
-    def __init__(self, app_root, use_wmo=False, use_dynamic_linking=False):
+    def __init__(self,
+                 app_root,
+                 use_wmo=False,
+                 use_dynamic_linking=False,
+                 use_deterministic_uuids=True,
+                 generate_multiple_pod_projects=False):
         self.app_root = app_root
         self.pod_lib_template = self.load_resource("mockcplibtemplate.podspec")
         self.pod_app_template = self.load_resource("mockcpapptemplate.podspec")
@@ -38,6 +43,8 @@ class CocoaPodsProjectGenerator(object):
         self.loc_calc = LOCCalculator()
         self.use_wmo = use_wmo
         self.use_dynamic_linking = use_dynamic_linking
+        self.use_deterministic_uuids = use_deterministic_uuids
+        self.generate_multiple_pod_projects = generate_multiple_pod_projects
         self.swift_file_size_loc = self.loc_calc.calculate_loc(
             self.swift_gen.gen_file(3, 3).text, self.swift_gen.language())
 
@@ -179,6 +186,9 @@ class CocoaPodsProjectGenerator(object):
     def gen_podfile(self, all_nodes):
         podfile_module_dep_list = self.make_podfile_dep_list([i.name for i in all_nodes])
         link_style = ":dynamic" if self.use_dynamic_linking else ":static"
+        use_deterministic_uuids = str(self.use_deterministic_uuids).lower()
+        generate_multiple_pod_projects = str(self.generate_multiple_pod_projects).lower()
+
         return self.podfile_template.format(
             "pod 'AppContainer', :path => 'App/AppContainer.podspec', :appspecs => ['App']", podfile_module_dep_list,
-            link_style)
+            link_style, use_deterministic_uuids, generate_multiple_pod_projects)

@@ -19,7 +19,10 @@ platform :ios, '12.0'
 use_frameworks!(:linkage => {2})
 inhibit_all_warnings!
 
-install! 'cocoapods', integrate_targets: false
+install! 'cocoapods',
+         integrate_targets: false,
+         deterministic_uuids: {3},
+         generate_multiple_pod_projects: {4}
 
 target 'App' do
     # app spec integration
