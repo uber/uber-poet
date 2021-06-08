@@ -63,11 +63,20 @@ class GenProjCommandLine(object):
             '--use_dynamic_linking',
             default=False,
             help='Whether or not to generate a project in which the modules are dynamically linked.  By default all '
-            'projects use static linking. This option is currently used only the CocoaPods generator.')
+            'projects use static linking. This option is currently used only by the CocoaPods generator.')
         parser.add_argument(
             '--print_dependency_graph',
             default=False,
             help='If true, prints out the dependency edge list and exits instead of generating an application.')
+        # CocoaPods specific options
+        parser.add_argument(
+            '--cocoapods_use_deterministic_uuids',
+            default=True,
+            help='Whether to use deterministic uuids within the CocoaPods generated project.  Defaults to `true`.')
+        parser.add_argument(
+            '--cocoapods_generate_multiple_pod_projects',
+            default=False,
+            help='Whether to generate multiple pods projects.  Defaults to `false`.')
 
         commandlineutil.AppGenerationConfig.add_app_gen_options(parser)
         args = parser.parse_args(args)
@@ -132,7 +141,11 @@ def project_generator_for_arg(args):
             args.output_directory, args.blaze_module_path, use_wmo=args.use_wmo, flavor=args.project_generator_type)
     elif args.project_generator_type == 'cocoapods':
         return cpprojectgen.CocoaPodsProjectGenerator(
-            args.output_directory, use_wmo=args.use_wmo, use_dynamic_linking=args.use_dynamic_linking)
+            args.output_directory,
+            use_wmo=args.use_wmo,
+            use_dynamic_linking=args.use_dynamic_linking,
+            use_deterministic_uuids=args.cocoapods_use_deterministic_uuids,
+            generate_multiple_pod_projects=args.cocoapods_generate_multiple_pod_projects)
     else:
         raise ValueError("Unknown project generator arg: " + str(args.project_generator_type))
 
