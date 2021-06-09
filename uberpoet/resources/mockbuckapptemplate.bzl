@@ -27,9 +27,15 @@ apple_bundle(
 
 apple_binary(
     name = "AppBinary",
-    srcs = [
-        "main.swift",
-    ],
+    srcs = glob([
+        "*.m",
+        "*.swift",
+    ]),
+    headers = glob([
+        "*.h"
+    ]),
+    linker_flags = ["-ObjC"],
+    compiler_flags = ["-fmodules"],
     configs = {{
         "Debug": {{
             "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{2}",

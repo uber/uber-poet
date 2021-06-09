@@ -1,5 +1,5 @@
 {
-  "DotReaderLib0": 180,
+  "DotReaderLib0": { "loc": 180, "language": "Objective-C" },
   "DotReaderLib1": 260,
   "DotReaderLib2": 210,
   "DotReaderLib3": 390,

@@ -21,12 +21,17 @@
 apple_library(
     name = "{0}",
     srcs = glob([
-        "Sources/*.swift",
+        "Sources/**/*.m",
+        "Sources/**/*.swift",
+    ]),
+    headers = glob([
+        "Sources/**/*.h"
     ]),
     tests = [],
     visibility = [
         "PUBLIC",
     ],
+    compiler_flags = ["-fmodules"],
     configs = {{
         "Debug": {{
             "SWIFT_WHOLE_MODULE_OPTIMIZATION": "{2}",

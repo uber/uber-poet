@@ -23,6 +23,7 @@ import mock
 import testfixtures.popen
 from testfixtures.popen import MockPopen, PopenBehaviour
 
+from uberpoet.filegen import Language
 from uberpoet.genproj import GenProjCommandLine
 from uberpoet.multisuite import CommandLineMultisuite
 
@@ -31,14 +32,27 @@ from .utils import integration_test, read_file
 
 class TestBazelIntegration(unittest.TestCase):
 
-    def verify_genproj(self, lib_name, file_count, app_path):
+    def verify_genproj(self, app_path, dir_file_count, swift_file_count, objc_file_count):
         main_path = join(app_path, 'App')
-        lib_path = join(app_path, lib_name, 'Sources')
 
         # Top level dir
         contents = os.listdir(app_path)
         self.assertGreater(len(contents), 0)
-        self.assertEqual(len(contents), file_count)
+        self.assertEqual(len(contents), dir_file_count)
+
+        swift_file_contents = []
+        objc_file_contents = []
+
+        for dirpath, dirnames, filenames in os.walk(app_path):
+            for f in filenames:
+                ext = os.path.splitext(f)[1]
+                if ext == '.swift':
+                    swift_file_contents.append(os.path.join(dirpath, f))
+                elif ext == '.h' or ext == '.m':
+                    objc_file_contents.append(os.path.join(dirpath, f))
+
+        self.assertEqual(len(swift_file_contents), swift_file_count)
+        self.assertEqual(len(objc_file_contents), objc_file_count)
 
         # App dir
         self.assertIn('App', contents)
@@ -50,14 +64,22 @@ class TestBazelIntegration(unittest.TestCase):
                 self.assertGreater(len(f.read()), 0)
                 # TODO actually verify generated code?
 
-        # Lib dir
-        self.assertIn(lib_name, contents)
+    def verify_lib(self, app_path, lib_name, language=Language.SWIFT):
+        lib_path = join(app_path, lib_name, 'Sources')
+
         lib_contents = os.listdir(lib_path)
         self.assertGreater(len(lib_contents), 0)
-        self.assertIn('File0.swift', lib_contents)
-        with open(join(lib_path, 'File0.swift'), 'r') as f:
-            self.assertGreater(len(f.read()), 0)
-            # TODO actually verify generated code?
+
+        if language == Language.SWIFT:
+            files = list(['File0.swift'])
+        elif language == Language.OBJC:
+            files = list(['File0.h', 'File0.m'])
+
+        for f in files:
+            self.assertIn(f, lib_contents)
+            with open(join(lib_path, f), 'r') as f:
+                self.assertGreater(len(f.read()), 0)
+                # TODO actually verify generated code?
 
     @integration_test
     def test_flat_genproj(self):
@@ -65,12 +87,29 @@ class TestBazelIntegration(unittest.TestCase):
         args = [
             "--output_directory", app_path, "--blaze_module_path", "/apps/mockapp", "--gen_type", "flat",
             "--project_generator_type", "bazel",
-            "--lines_of_code", "150000"
+            "--swift_lines_of_code", "150000"
         ]
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('MockLib53', 105, app_path)
+        self.verify_genproj(app_path, 105, 1101, 0)
+        self.verify_lib(app_path, 'MockLib53')
+
+    @integration_test
+    def test_genproj_with_objc(self):
+        app_path = join(tempfile.gettempdir(), 'apps', 'mockapp')
+        args = [
+            "--output_directory", app_path, "--blaze_module_path", "/apps/mockapp", "--gen_type", "flat",
+            "--project_generator_type", "bazel",
+            "--swift_lines_of_code", "0",
+            "--objc_lines_of_code", "150000"
+        ]
+        command = GenProjCommandLine()
+        command.main(args)
+
+        # 1 Swift file count expected due to main.swift for the app target.
+        self.verify_genproj(app_path, 105, 1, 2200)
+        self.verify_lib(app_path, 'MockLib53', Language.OBJC)
 
     @integration_test
     def test_dot_genproj(self):
@@ -80,12 +119,13 @@ class TestBazelIntegration(unittest.TestCase):
         args = [
             "--output_directory", app_path, "--blaze_module_path", "/apps/mockapp", "--gen_type", "dot",
             "--project_generator_type", "bazel",
-            "--lines_of_code", "150000", "--dot_file", test_fixture_path, "--dot_root", "DotReaderMainModule"
+            "--swift_lines_of_code", "150000", "--dot_file", test_fixture_path, "--dot_root", "DotReaderMainModule"
         ]
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 342, app_path)
+        self.verify_genproj(app_path, 342, 1012, 0)
+        self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
     def test_dot_genproj_with_loc_mappings(self):
@@ -102,7 +142,8 @@ class TestBazelIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj('DotReaderLib17', 343, app_path)
+        self.verify_genproj(app_path, 343, 548, 2)
+        self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
     def test_flat_multisuite(self):
@@ -114,7 +155,8 @@ class TestBazelIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj('MockLib53', 104, app_path)
+        self.verify_genproj(app_path, 104, 701, 0)
+        self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
     def test_flat_multisuite_mocking_calls(self):
@@ -147,7 +189,8 @@ class TestBazelIntegration(unittest.TestCase):
                 mock_find.return_value = '/bin/ls'  # A non empty return value basically means "I found that executable"
                 CommandLineMultisuite().main(args)
                 self.assertGreater(os.listdir(app_path), 0)
-                self.verify_genproj('MockLib53', 104, app_path)
+                self.verify_genproj(app_path, 104, 701, 0)
+                self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
     def test_dot_multisuite(self):
@@ -163,7 +206,8 @@ class TestBazelIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj('DotReaderLib17', 341, app_path)
+        self.verify_genproj(app_path, 341, 675, 0)
+        self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
     def test_all_multisuite(self):
@@ -173,7 +217,7 @@ class TestBazelIntegration(unittest.TestCase):
         log_path = join(root_path, 'logs')
         args = [
             "--log_dir", log_path, "--app_gen_output_dir", root_path, "--dot_file", test_fixture_path, "--dot_root",
-            "DotReaderMainModule", "--skip_xcode_build", "--lines_of_code", "150000",
+            "DotReaderMainModule", "--skip_xcode_build", "--swift_lines_of_code", "150000",
             "--project_generator_type", "bazel"
         ]
         command = CommandLineMultisuite()
@@ -183,4 +227,5 @@ class TestBazelIntegration(unittest.TestCase):
         # Note we are assuming that the last project to be generated is the dot project.
         # If you change the order of project generation, make this match whatever is the new 'last project'
         # It's a bit fragile, but it's better than not verifying anything currently
-        self.verify_genproj('DotReaderLib17', 341, app_path)
+        self.verify_genproj(app_path, 341, 1012, 0)
+        self.verify_lib(app_path, 'DotReaderLib17')

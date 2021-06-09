@@ -21,6 +21,7 @@ Small pull requests for things like typos, bug fixes, etc are always welcome.
 * DO add types if possible with new and old code.  Types help with refactoring and are unit tests you don't have to write.
 * DO include tests when adding new features. When fixing bugs, start with adding a test that highlights how the current behavior is broken.
 * DO keep the discussions focused. When a new or related topic comes up it's often better to create new issue than to side track the discussion.
+* DON'T not copy code from websites with licenses that are incompatible with Apache 2.0. This means you cannot copy from StackOverflow, because it's Creative Commons BY-SA license which is not compatible.
 * DON'T submit PRs that alter licensing related files or headers. If you believe there's a problem with them, file an issue and we'll be happy to discuss it.
 
 ## Basic Getting Started

@@ -29,7 +29,7 @@ pipenv run $GIT_ROOT/genproj.py \
            --project_generator_type "bazel" \
            --blaze_module_path "/mockapp" \
            --gen_type flat \
-           --lines_of_code 150000
+           --swift_lines_of_code 150000
 
 cd "$PROJECT_OUT"
 time bazel build "//..." --incompatible_require_linker_input_cc_api=false > "$BUILD_LOG_PATH"
