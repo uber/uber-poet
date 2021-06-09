@@ -90,7 +90,7 @@ class TestCocoaPodsIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj(app_path, 104, 1102, 0)
+        self.verify_genproj(app_path, 104, 902, 0)
         self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
@@ -119,7 +119,7 @@ class TestCocoaPodsIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj(app_path, 341, 1013, 0)
+        self.verify_genproj(app_path, 341, 676, 0)
         self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
@@ -137,7 +137,7 @@ class TestCocoaPodsIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj(app_path, 342, 549, 2)
+        self.verify_genproj(app_path, 342, 485, 2)
         self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
@@ -152,7 +152,7 @@ class TestCocoaPodsIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj(app_path, 103, 702, 0)
+        self.verify_genproj(app_path, 103, 602, 0)
         self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
@@ -185,7 +185,7 @@ class TestCocoaPodsIntegration(unittest.TestCase):
                 mock_find.return_value = '/bin/ls'  # A non empty return value basically means "I found that executable"
                 CommandLineMultisuite().main(args)
                 self.assertGreater(os.listdir(app_path), 0)
-                self.verify_genproj(app_path, 103, 702, 0)
+                self.verify_genproj(app_path, 103, 602, 0)
                 self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
@@ -201,7 +201,7 @@ class TestCocoaPodsIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj(app_path, 340, 676, 0)
+        self.verify_genproj(app_path, 340, 339, 0)
         self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
@@ -222,5 +222,5 @@ class TestCocoaPodsIntegration(unittest.TestCase):
         # Note we are assuming that the last project to be generated is the dot project.
         # If you change the order of project generation, make this match whatever is the new 'last project'
         # It's a bit fragile, but it's better than not verifying anything currently
-        self.verify_genproj(app_path, 340, 1013, 0)
+        self.verify_genproj(app_path, 340, 676, 0)
         self.verify_lib(app_path, 'DotReaderLib17')
