@@ -17,24 +17,24 @@ jobs:
       INTEGRATION: 1
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 2.7
+    - name: Set up Python 2.7.
       uses: actions/setup-python@v2
       with:
         python-version: 2.7
-    - name: Install development dependencies
+    - name: Install all development dependencies with pipenv.
       run: |
         python -m pip install --upgrade pip
         pip install pipenv
         pipenv install --dev
-    - name: Lint with flake8
+    - name: Lint with flake8.
       run: |
         pipenv run flake8
-    - name: Test formatting compliance with yapf
+    - name: Test formatting compliance with yapf.
       run: |
         pipenv run yapf -rd uberpoet/ test/ *py
-    - name: Test that isort was run
+    - name: Test that imports were sorted with isort.
       run: |
         pipenv run isort -c
-    - name: Run pytest
+    - name: Run unit and integration tests with pytest.
       run: |
         pipenv run pytest --cov=uberpoet --cov-report xml:cov.xml --cov-report term-missing
