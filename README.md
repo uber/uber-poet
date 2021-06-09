@@ -1,7 +1,7 @@
 # Uber Poet
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2983/badge)](https://bestpractices.coreinfrastructure.org/projects/2983)
-[![Build Status](https://travis-ci.com/uber-common/uber-poet.svg?token=TZiRzWx6Zx4p4Kb4VxAB&branch=master)](https://travis-ci.com/uber-common/uber-poet)
+[![Build Status](https://github.com/uber/uber-poet/actions/workflows/python-app.yml/badge.svg)](https://github.com/uber/uber-poet/actions)
 
 This python app makes mock Xcode Swift / ObjC app projects with [Buck](https://buckbuild.com/), [Bazel](https://bazel.build/)
 and [CocoaPods](https://cocoapods.org).  It lets us test different Swift / ObjC module configurations to see how much build speed is affected by different [dependency graphs](docs/layer_types.md) with identical amounts of code.  There are two main command line apps:
@@ -10,10 +10,6 @@ and [CocoaPods](https://cocoapods.org).  It lets us test different Swift / ObjC 
 * `multisuite.py`, which generates all module configs, builds them, records how long they take to build into a CSV and outputs it's results to a directory passed in the command line.  Essentially a benchmark test suite.  Can take several hours to run depending how many lines of code each app takes.
 
 This app was architected so other languages, graph generators or build systems wouldn't be much work to add.  Theoretically you could extend this app to generate java gradle android apps with the same [dependency graph types](docs/layer_types.md).
-
-## Project Status
-
-This project is stable and being incubated for long-term support.
 
 ## How to Install / Dependencies
 
@@ -165,6 +161,10 @@ Parse the JSON with your favorite language and read the `"code"` value from the 
 ## How to Contribute / Develop
 
 Take a look at [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)! 
+
+## Project Status
+
+This project is stable and being incubated for long-term support.
 
 ## Licence
 
