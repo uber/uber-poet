@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 typing = "==3.6.6"
+toposort = "==1.6.0"
 
 [dev-packages]
 mock = "==2.0.0"

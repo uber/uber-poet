@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 
 import json
+import math
 import shutil
 from os.path import basename, dirname, join
 
@@ -22,7 +23,7 @@ from . import locreader
 from .filegen import Language, ObjCHeaderFileGenerator, ObjCSourceFileGenerator, SwiftFileGenerator
 from .loccalc import LOCCalculator
 from .moduletree import ModuleNode
-from .util import first_in_dict, first_key, makedir, percentage_split
+from .util import first_in_dict, first_key, makedir
 
 
 class CocoaPodsProjectGenerator(object):
@@ -97,7 +98,7 @@ class CocoaPodsProjectGenerator(object):
                 loc = loc_reader.loc_for_module(n.name)
                 language = loc_reader.language_for_module(n.name)
                 module_index[n.name] = {
-                    "files": self.gen_lib_module(n, loc, language),
+                    "files": self.gen_lib_module(module_index, n, loc, language),
                     "loc": loc,
                     "language": language
                 }
@@ -107,37 +108,18 @@ class CocoaPodsProjectGenerator(object):
                 total_code_units += l.code_units
 
             total_loc = target_swift_loc + target_objc_loc
-
             swift_module_count_percentage = round(float(target_swift_loc) / total_loc, 2)
-            objc_module_count_percentage = round(float(target_objc_loc) / total_loc, 2)
-
-            # Splits the generated module list across the percentage of LOC that needs to be allocated between ObjC
-            # and Swift and depending on the parameters passed.
-            split_library_node_list = list(
-                percentage_split(library_node_list, [swift_module_count_percentage, objc_module_count_percentage]))
-
-            swift_library_node_list = split_library_node_list[0]
-            objc_library_node_list = split_library_node_list[1]
-
             loc_per_unit = total_loc / total_code_units
 
-            swift_module_index = {
-                n.name: {
-                    "files": self.gen_lib_module(n, loc_per_unit, Language.SWIFT),
+            module_index = {}
+            max_swift_index = int(math.ceil((len(library_node_list) * swift_module_count_percentage)))
+            for idx, n in enumerate(library_node_list):
+                language = Language.OBJC if idx >= max_swift_index else Language.SWIFT
+                module_index[n.name] = {
+                    "files": self.gen_lib_module(module_index, n, loc_per_unit, language),
                     "loc": loc_per_unit,
-                    "language": Language.SWIFT
-                } for n in swift_library_node_list
-            }
-
-            objc_module_index = {
-                n.name: {
-                    "files": self.gen_lib_module(n, loc_per_unit, Language.OBJC),
-                    "loc": loc_per_unit,
-                    "language": Language.OBJC
-                } for n in objc_library_node_list
-            }
-
-            module_index = dict(list(swift_module_index.items()) + list(objc_module_index.items()))
+                    "language": language
+                }
 
         app_module_dir = join(self.app_root, "App")
         makedir(app_module_dir)
@@ -181,15 +163,20 @@ class CocoaPodsProjectGenerator(object):
         language = module_index[importing_module_name]["language"]
         class_key = first_key(file_index.classes)
         class_index = first_in_dict(file_index.classes)
-        function_key = class_index[0]
+        function_key = first_in_dict(class_index)[0]
         return self.swift_gen.gen_main(importing_module_name, class_key, function_key, language)
 
     # Library Generation
 
-    def gen_lib_module(self, module_node, loc_per_unit, language):
+    def gen_lib_module(self, module_index, module_node, loc_per_unit, language):
         # Make Podspec Text
         deps = self.make_dep_list([i.name for i in module_node.deps])
         pod_text = self.pod_lib_template.format(module_node.name, deps, self.wmo_state)
+        # We now return a topologically sorted list of the graph which means that we will already have the
+        # deps of a module inside the module index before we process this one.  This allows us to reach into
+        # the generated sources for the dependencies in order to create an instance of their class and
+        # invoke their functions.
+        deps_from_index = [{n.name: module_index[n.name]} for n in module_node.deps]
 
         # Make Text
         if language == Language.SWIFT:
@@ -199,7 +186,9 @@ class CocoaPodsProjectGenerator(object):
                 raise ValueError(
                     "Lines of code count is too small for the module {} to fit one file, increase it.".format(
                         module_node.name))
-            files = {"File{}.swift".format(i): self.swift_gen.gen_file(3, 3) for i in xrange(file_count)}
+            files = {
+                "File{}.swift".format(i): self.swift_gen.gen_file(3, 3, deps_from_index) for i in xrange(file_count)
+            }
         elif language == Language.OBJC:
             file_count = (max(self.objc_file_size_loc, loc_per_unit) * module_node.code_units) / self.objc_file_size_loc
             if file_count < 1:
@@ -208,7 +197,8 @@ class CocoaPodsProjectGenerator(object):
                         module_node.name))
             files = {}
             for i in xrange(file_count):
-                objc_source_file = self.objc_source_gen.gen_file(3, 3, import_list=['File{}.h'.format(i)])
+                objc_source_file = self.objc_source_gen.gen_file(
+                    3, 3, import_list=deps_from_index + ['File{}.h'.format(i)])
                 files["File{}.m".format(i)] = objc_source_file
                 files["File{}.h".format(i)] = self.objc_header_gen.gen_file(objc_source_file)
 

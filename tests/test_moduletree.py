@@ -14,6 +14,8 @@
 
 import unittest
 
+from toposort import toposort_flatten
+
 from uberpoet.moduletree import ModuleNode
 
 
@@ -21,5 +23,20 @@ class TestModuleTree(unittest.TestCase):
 
     def test_gen_layered_graph(self):
         root, nodes = ModuleNode.gen_layered_graph(10, 10)
+        self.verify_graph(nodes)
         self.assertEqual(len(nodes), 10 * 10 + 1)
         self.assertEqual(ModuleNode.APP, root.node_type)
+
+    def test_gen_bs_layered_graph(self):
+        root, nodes = ModuleNode.gen_layered_big_small_graph(10, 10)
+        self.verify_graph(nodes)
+        self.assertEqual(len(nodes), 19 + 1)
+        self.assertEqual(ModuleNode.APP, root.node_type)
+
+    def verify_graph(self, nodes):
+        # The generated layered graphs add dependencies randomly to modules within each layer.
+        # Because of that, we cannot always specify a fixed expected list of nodes without making
+        # tests indeterministic. Instead, we verify topological sorting by re-creating the same graph,
+        # sorting it topologicaly and assert the two lists to be the same.
+        graph = {n: set(n.deps) for n in nodes}
+        self.assertEqual(toposort_flatten(graph), nodes)

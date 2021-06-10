@@ -16,6 +16,8 @@ from __future__ import absolute_import
 
 import random
 
+from toposort import toposort_flatten
+
 from .util import merge_lists
 
 
@@ -78,8 +80,9 @@ class ModuleNode(object):
             return ModuleNode('MockLib{}_{}'.format(f_layer, f_node), ModuleNode.LIBRARY)
 
         layers = [[node(l, n) for n in xrange(nodes_per_layer)] for l in xrange(layer_count)]
-        all_nodes = merge_lists(layers)
         app_node = ModuleNode('App', ModuleNode.APP, layers[0])
+
+        node_graph = {}
 
         for i, layer in enumerate(layers):
             lower_layers = layers[(i + 1):] if i != len(layers) - 1 else []
@@ -90,7 +93,9 @@ class ModuleNode(object):
                 else:
                     node.deps = lower_merged
 
-        return app_node, (all_nodes + [app_node])
+                node_graph[node] = set(node.deps)
+
+        return app_node, (toposort_flatten(node_graph) + [app_node])
 
     @staticmethod
     def gen_flat_graph(module_count):
@@ -128,4 +133,5 @@ class ModuleNode(object):
             l.code_units = 20
             l.deps = layer_app_node.deps
 
-        return app_node, (big_libs + layer_nodes + [app_node])
+        node_graph = {n: set(n.deps) for n in big_libs + layer_nodes}
+        return app_node, (toposort_flatten(node_graph) + [app_node])

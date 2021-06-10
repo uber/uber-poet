@@ -22,6 +22,8 @@ import shutil
 import subprocess
 from os.path import join
 
+from toposort import toposort_flatten
+
 from . import dotreader
 from .cpulogger import CPULog
 from .filegen import Language
@@ -140,7 +142,10 @@ def gen_graph(gen_type, config):
         app_node, node_list = ModuleNode.gen_layered_big_small_graph(config.big_module_count, config.small_module_count)
     elif gen_type == ModuleGenType.dot and config.dot_file_path and config.dot_root_node_name:
         logging.info("Reading dot file: %s", config.dot_file_path)
-        app_node, node_list = dotreader.DotFileReader().read_dot_file(config.dot_file_path, config.dot_root_node_name)
+        app_node, parsed_node_list = dotreader.DotFileReader().read_dot_file(config.dot_file_path,
+                                                                             config.dot_root_node_name)
+        node_graph = {n: set(n.deps) for n in parsed_node_list}
+        node_list = toposort_flatten(node_graph)
     else:
         logging.error("Unexpected argument set, aborting.")
         item_list = ', '.join(ModuleGenType.enum_list())

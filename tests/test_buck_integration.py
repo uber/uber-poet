@@ -91,7 +91,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj(app_path, 104, 1101, 0)
+        self.verify_genproj(app_path, 104, 901, 0)
         self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
@@ -120,7 +120,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj(app_path, 341, 1012, 0)
+        self.verify_genproj(app_path, 341, 675, 0)
         self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
@@ -137,7 +137,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = GenProjCommandLine()
         command.main(args)
 
-        self.verify_genproj(app_path, 342, 548, 2)
+        self.verify_genproj(app_path, 342, 484, 2)
         self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
@@ -149,7 +149,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj(app_path, 103, 701, 0)
+        self.verify_genproj(app_path, 103, 601, 0)
         self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
@@ -182,7 +182,7 @@ class TestBuckIntegration(unittest.TestCase):
                 mock_find.return_value = '/bin/ls'  # A non empty return value basically means "I found that executable"
                 CommandLineMultisuite().main(args)
                 self.assertGreater(os.listdir(app_path), 0)
-                self.verify_genproj(app_path, 103, 701, 0)
+                self.verify_genproj(app_path, 103, 601, 0)
                 self.verify_lib(app_path, 'MockLib53')
 
     @integration_test
@@ -198,7 +198,7 @@ class TestBuckIntegration(unittest.TestCase):
         command = CommandLineMultisuite()
         command.main(args)
         self.assertGreater(os.listdir(app_path), 0)
-        self.verify_genproj(app_path, 340, 675, 0)
+        self.verify_genproj(app_path, 340, 338, 0)
         self.verify_lib(app_path, 'DotReaderLib17')
 
     @integration_test
@@ -218,5 +218,5 @@ class TestBuckIntegration(unittest.TestCase):
         # Note we are assuming that the last project to be generated is the dot project.
         # If you change the order of project generation, make this match whatever is the new 'last project'
         # It's a bit fragile, but it's better than not verifying anything currently
-        self.verify_genproj(app_path, 340, 1012, 0)
+        self.verify_genproj(app_path, 340, 675, 0)
         self.verify_lib(app_path, 'DotReaderLib17')
