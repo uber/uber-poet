@@ -35,6 +35,7 @@ class BlazeProjectGenerator(object):
         self.blaze_app_root = blaze_app_root
         self.bzl_lib_template = self.load_resource("mock{}libtemplate.bzl".format(flavor))
         self.bzl_app_template = self.load_resource("mock{}apptemplate.bzl".format(flavor))
+        self.app_delegate_template = self.load_resource("mockappdelegate")
         self.swift_gen = SwiftFileGenerator()
         self.objc_source_gen = ObjCSourceFileGenerator()
         self.objc_header_gen = ObjCHeaderFileGenerator()
@@ -128,7 +129,7 @@ class BlazeProjectGenerator(object):
 
         app_build_file = "BUCK" if self.flavor == 'buck' else "BUILD"
         app_files = {
-            "main.swift": self.gen_app_main(app_node, module_index),
+            "AppDelegate.swift": self.gen_app_main(app_node, module_index),
             app_build_file: self.gen_app_build(app_node, library_node_list),
         }
 
@@ -169,7 +170,8 @@ class BlazeProjectGenerator(object):
         class_key = first_key(file_index.classes)
         class_index = first_in_dict(file_index.classes)
         function_key = first_in_dict(class_index)[0]
-        return self.swift_gen.gen_main(importing_module_name, class_key, function_key, language)
+        return self.swift_gen.gen_main(self.app_delegate_template, importing_module_name, class_key, function_key,
+                                       language)
 
     # Library Generation
 

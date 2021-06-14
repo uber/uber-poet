@@ -58,7 +58,7 @@ class TestBazelIntegration(unittest.TestCase):
         self.assertIn('App', contents)
         app_contents = os.listdir(main_path)
         self.assertGreater(len(app_contents), 0)
-        for file_name in ['BUILD', 'main.swift', 'Info.plist']:
+        for file_name in ['BUILD', 'AppDelegate.swift', 'Info.plist']:
             self.assertIn(file_name, app_contents)
             with open(join(main_path, file_name), 'r') as f:
                 self.assertGreater(len(f.read()), 0)

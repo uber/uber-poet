@@ -40,6 +40,7 @@ class CocoaPodsProjectGenerator(object):
         self.pod_lib_template = self.load_resource("mockcplibtemplate.podspec")
         self.pod_app_template = self.load_resource("mockcpapptemplate.podspec")
         self.podfile_template = self.load_resource("mockpodfile")
+        self.app_delegate_template = self.load_resource("mockappdelegate")
         self.swift_gen = SwiftFileGenerator()
         self.objc_source_gen = ObjCSourceFileGenerator()
         self.objc_header_gen = ObjCHeaderFileGenerator()
@@ -125,7 +126,7 @@ class CocoaPodsProjectGenerator(object):
         makedir(app_module_dir)
 
         app_files = {
-            "main.swift": self.gen_app_main(app_node, module_index),
+            "AppDelegate.swift": self.gen_app_main(app_node, module_index),
             "dummy.swift": "",
             "AppContainer.podspec": self.gen_app_podspec(app_node),
         }
@@ -164,7 +165,8 @@ class CocoaPodsProjectGenerator(object):
         class_key = first_key(file_index.classes)
         class_index = first_in_dict(file_index.classes)
         function_key = first_in_dict(class_index)[0]
-        return self.swift_gen.gen_main(importing_module_name, class_key, function_key, language)
+        return self.swift_gen.gen_main(self.app_delegate_template, importing_module_name, class_key, function_key,
+                                       language)
 
     # Library Generation
 

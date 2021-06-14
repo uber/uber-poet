@@ -351,9 +351,9 @@ class SwiftFileGenerator(FileGenerator):
         return FileResult("\n".join(chunks), func_nums, class_nums)
 
     @staticmethod
-    def gen_main(importing_module_name, class_num, func_num, to_language):
+    def gen_main(template, importing_module_name, class_num, func_num, to_language):
         import_line = 'import {}'.format(importing_module_name)
         action_expr = get_func_call_template(Language.SWIFT, to_language, FuncType.SWIFT_ONLY).format(
             class_num, func_num)
         print_line = 'print("\\({})")'.format(action_expr)
-        return '\n'.join([uber_poet_header, import_line, print_line])
+        return template.format(uber_poet_header, import_line, print_line)
