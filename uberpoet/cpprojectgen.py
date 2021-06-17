@@ -35,7 +35,8 @@ class CocoaPodsProjectGenerator(object):
                  use_wmo=False,
                  use_dynamic_linking=False,
                  use_deterministic_uuids=True,
-                 generate_multiple_pod_projects=False):
+                 generate_multiple_pod_projects=False,
+                 additional_system_frameworks=[]):
         self.app_root = app_root
         self.pod_lib_template = self.load_resource("mockcplibtemplate.podspec")
         self.pod_app_template = self.load_resource("mockcpapptemplate.podspec")
@@ -48,6 +49,7 @@ class CocoaPodsProjectGenerator(object):
         self.use_dynamic_linking = use_dynamic_linking
         self.use_deterministic_uuids = use_deterministic_uuids
         self.generate_multiple_pod_projects = generate_multiple_pod_projects
+        self.additional_system_frameworks = additional_system_frameworks
         self.swift_file_size_loc = self.loc_calc.calculate_loc(
             self.swift_gen.gen_file(3, 3).text, self.swift_gen.language())
         self.objc_file_size_loc = self.loc_calc.calculate_loc(
@@ -155,7 +157,9 @@ class CocoaPodsProjectGenerator(object):
 
     def gen_app_podspec(self, node):
         module_dep_list = self.make_dep_list([i.name for i in node.deps])
-        return self.pod_app_template.format(module_dep_list, self.wmo_state)
+        additional_system_frameworks = '' if not self.additional_system_frameworks else ", {}".format(', '.join(
+            '"{}"'.format(w) for w in self.additional_system_frameworks))
+        return self.pod_app_template.format(module_dep_list, self.wmo_state, additional_system_frameworks)
 
     def gen_app_main(self, app_node, module_index):
         importing_module_name = app_node.deps[0].name

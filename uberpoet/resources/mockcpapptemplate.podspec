@@ -30,7 +30,7 @@ Pod::Spec.new do |s|
 
   s.app_spec 'App' do |app_spec|
       app_spec.pod_target_xcconfig         = {{ 'SWIFT_WHOLE_MODULE_OPTIMIZATION[config=Debug]' => '{1}' }}
-      app_spec.frameworks                  = ['Foundation', 'UIKit']
+      app_spec.frameworks                  = ['Foundation', 'UIKit'{2}]
 
       app_spec.source_files = '*.swift'
 

@@ -29,6 +29,7 @@ apple_framework(
     sdk_frameworks = [
         "Foundation",
         "UIKit",
+        {3}
     ],
     platforms = {{"ios": "12.0"}},
     swift_version = "5.0",
