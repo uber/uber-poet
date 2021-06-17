@@ -65,6 +65,12 @@ class GenProjCommandLine(object):
             help='Whether or not to generate a project in which the modules are dynamically linked.  By default all '
             'projects use static linking. This option is currently used only by the CocoaPods generator.')
         parser.add_argument(
+            '-asf',
+            '--additional_system_frameworks',
+            nargs='+',
+            default=[],
+            help='Additional system frameworks to include in the generated app.  By default UIKit and Foundation are included.')
+        parser.add_argument(
             '--print_dependency_graph',
             default=False,
             help='If true, prints out the dependency edge list and exits instead of generating an application.')
@@ -148,7 +154,8 @@ def project_generator_for_arg(args):
             use_wmo=args.use_wmo,
             use_dynamic_linking=args.use_dynamic_linking,
             use_deterministic_uuids=args.cocoapods_use_deterministic_uuids,
-            generate_multiple_pod_projects=args.cocoapods_generate_multiple_pod_projects)
+            generate_multiple_pod_projects=args.cocoapods_generate_multiple_pod_projects,
+            additional_system_frameworks=args.additional_system_frameworks)
     else:
         raise ValueError("Unknown project generator arg: " + str(args.project_generator_type))
 

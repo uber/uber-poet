@@ -53,6 +53,7 @@ ios_application(
     sdk_frameworks = [
         "Foundation",
         "UIKit",
+        {3}
     ],
     linkopts = [
         "-ObjC"
