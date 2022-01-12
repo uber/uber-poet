@@ -211,8 +211,10 @@ class BlazeProjectGenerator(object):
         # Make Module Directories
         module_dir_path = join(self.app_root, module_node.name)
         files_dir_path = join(module_dir_path, "Sources")
+        test_files_dir_path = join(module_dir_path, "Tests")
         makedir(module_dir_path)
         makedir(files_dir_path)
+        makedir(test_files_dir_path)
 
         # Write BUCK or BUILD Files
         build_name = "BUCK" if self.flavor == 'buck' else "BUILD"
@@ -224,6 +226,11 @@ class BlazeProjectGenerator(object):
             file_path = join(files_dir_path, file_name)
             self.write_file(file_path, file_obj.text)
             file_obj.text = ""  # Save memory after write
+
+        # Write Swift Test Files
+        file_path = join(test_files_dir_path, "Empty.swift")
+        self.write_file(file_path, file_obj.text)
+        file_obj.text = ""  # Save memory after write
 
         module_node.extra_info = files
 
